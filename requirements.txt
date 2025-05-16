@@ -1,0 +1,9 @@
+Django==5.1.5
+mysqlclient==2.2.7
+django-bootstrap5==25.1
+python-dotenv==1.0.1
+Pillow==10.2.0
+requests==2.31.0
+pandas==2.2.1
+matplotlib==3.8.3
+numpy==1.26.4

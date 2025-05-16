@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle Orden Paris | Lodoro Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Detalle de Orden Paris</h6>
+                            <p class="text-sm">
+                                <span class="font-weight-bold">Orden:</span> {{ order.originOrderNumber }}
+                                <span class="font-weight-bold ml-3">Fecha:</span> {{ order.createdAt|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <a href="{% url 'paris_orders' %}" class="btn btn-outline-primary btn-sm mb-0">Volver a Órdenes</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Acciones -->
+                <div class="card-header pb-0">
+                    <form method="post" action="{% url 'paris_order_detail' order_id=order.order_id %}">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-12 text-end">
+                                {% if not order.processed %}
+                                <button type="submit" name="action" value="process" class="btn btn-success btn-sm">
+                                    <i class="fa fa-check"></i> Marcar como Procesada
+                                </button>
+                                {% endif %}
+                                
+                                {% if not order.printed %}
+                                <button type="submit" name="action" value="print" class="btn btn-info btn-sm">
+                                    <i class="fa fa-print"></i> Marcar como Impresa
+                                </button>
+                                {% endif %}
+                                
+                                <button type="submit" name="action" value="cancel" class="btn btn-danger btn-sm">
+                                    <i class="fa fa-times"></i> Cancelar Orden
+                                </button>
+                                
+                                <button type="submit" name="action" value="ship" class="btn btn-primary btn-sm">
+                                    <i class="fa fa-truck"></i> Marcar como Enviada
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Información de la Orden -->
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-uppercase text-sm">Información de la Orden</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">ID Interno</label>
+                                        <p class="form-control-static">{{ order.order_id }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Número de Orden</label>
+                                        <p class="form-control-static">{{ order.originOrderNumber }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Número de Suborden</label>
+                                        <p class="form-control-static">{{ order.subOrderNumber }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Fecha de Creación</label>
+                                        <p class="form-control-static">{{ order.createdAt|date:"d/m/Y H:i" }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Origen</label>
+                                        <p class="form-control-static">{{ order.origin|default:"No especificado" }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Estado</label>
+                                        <p class="form-control-static">
+                                            {% if order.status == 'NUEVA' %}
+                                                <span class="badge badge-sm bg-gradient-info">Nueva</span>
+                                            {% elif order.status == 'PROCESADA' %}
+                                                <span class="badge badge-sm bg-gradient-success">Procesada</span>
+                                            {% else %}
+                                                <span class="badge badge-sm bg-gradient-secondary">{{ order.status }}</span>
+                                            {% endif %}
+                                            
+                                            {% if order.printed %}
+                                                <span class="badge badge-sm bg-gradient-dark">Impresa</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Monto Total</label>
+                                        <p class="form-control-static">${{ order.total_amount|floatformat:0 }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-uppercase text-sm">Información del Cliente</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Nombre</label>
+                                        <p class="form-control-static">{{ order.customer_name|default:"No especificado" }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Email</label>
+                                        <p class="form-control-static">{{ order.customer_email|default:"No especificado" }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Tipo de Documento</label>
+                                        <p class="form-control-static">{{ order.customer_documentType|default:"No especificado" }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Número de Documento</label>
+                                        <p class="form-control-static">{{ order.customer_documentNumber|default:"No especificado" }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Teléfono</label>
+                                        <p class="form-control-static">{{ order.billing_phone|default:"No especificado" }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="horizontal dark">
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6 class="text-uppercase text-sm">Dirección de Facturación</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Nombre</label>
+                                        <p class="form-control-static">{{ order.billing_firstName|default:"" }} {{ order.billing_lastName|default:"" }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Dirección</label>
+                                        <p class="form-control-static">{{ order.billing_address1|default:"" }} {{ order.billing_address2|default:"" }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-control-label">Ciudad/Comuna</label>
+                                        <p class="form-control-static">{{ order.billing_city|default:"" }} / {{ order.billing_communaCode|default:"" }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Productos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <h6>Productos</h6>
+                </div>
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">SKU</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Producto</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Precio Base</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Precio Final</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Cantidad</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">{{ item.sku }}</h6>
+                                                <p class="text-xs text-secondary mb-0">{{ item.sellerSku|default:"-" }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{ item.name }}</p>
+                                        <p class="text-xs text-secondary mb-0">{{ item.size|default:"-" }}</p>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">${{ item.basePrice|floatformat:0 }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">${{ item.priceAfterDiscounts|floatformat:0 }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ item.quantity }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">${{ item.price|floatformat:0 }}</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <p class="text-secondary mb-0">No hay productos en esta orden</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

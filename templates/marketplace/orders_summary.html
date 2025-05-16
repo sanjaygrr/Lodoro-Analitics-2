@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block title %}Resumen de Órdenes | Lodoro Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Resumen de Órdenes</h6>
+                            <p class="text-sm">
+                                <span class="font-weight-bold">Total:</span> {{ total_orders }} órdenes
+                                <span class="font-weight-bold ml-3">Monto Total:</span> ${{ total_amount|floatformat:0 }}
+                            </p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <a href="{% url 'home' %}" class="btn btn-outline-primary btn-sm mb-0">Volver al Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtros de período -->
+                <div class="card-header pb-0">
+                    <form method="get" action="{% url 'orders_summary' %}">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="period">Período</label>
+                                    <select class="form-control" id="period" name="period">
+                                        <option value="week" {% if period == 'week' %}selected{% endif %}>Última semana</option>
+                                        <option value="month" {% if period == 'month' %}selected{% endif %}>Mes actual</option>
+                                        <option value="year" {% if period == 'year' %}selected{% endif %}>Año actual</option>
+                                        <option value="all" {% if period == 'all' %}selected{% endif %}>Todo</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-8 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Resumen por marketplace -->
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Marketplace</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Total Órdenes</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Nuevas</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Procesadas</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Monto Total</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">% del Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Paris -->
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">Paris</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ paris_total }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ paris_new }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ paris_processed }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">${{ paris_amount|floatformat:0 }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <span class="me-2 text-xs font-weight-bold">{{ paris_percent|floatformat:1 }}%</span>
+                                            <div>
+                                                <div class="progress">
+                                                    <div class="progress-bar bg-gradient-info" role="progressbar" aria-valuenow="{{ paris_percent }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ paris_percent }}%;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Ripley -->
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">Ripley</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ ripley_total }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ ripley_new }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ ripley_processed }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">${{ ripley_amount|floatformat:0 }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <span class="me-2 text-xs font-weight-bold">{{ ripley_percent|floatformat:1 }}%</span>
+                                            <div>
+                                                <div class="progress">
+                                                    <div class="progress-bar bg-gradient-success" role="progressbar" aria-valuenow="{{ ripley_percent }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ ripley_percent }}%;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Total -->
+                                <tr class="bg-light">
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm font-weight-bold">TOTAL</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ total_orders }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ paris_new|add:ripley_new }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ paris_processed|add:ripley_processed }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">${{ total_amount|floatformat:0 }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">100%</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Gráficos -->
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header pb-0">
+                                    <h6>Distribución de Órdenes</h6>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart">
+                                        <canvas id="orders-distribution-chart" class="chart-canvas" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header pb-0">
+                                    <h6>Distribución de Montos</h6>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart">
+                                        <canvas id="amount-distribution-chart" class="chart-canvas" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Gráfico de distribución de órdenes
+        var ctx1 = document.getElementById("orders-distribution-chart").getContext("2d");
+        new Chart(ctx1, {
+            type: "pie",
+            data: {
+                labels: ["Paris", "Ripley"],
+                datasets: [{
+                    label: "Órdenes",
+                    backgroundColor: ["#17c1e8", "#82d616"],
+                    data: [{{ paris_total }}, {{ ripley_total }}]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de distribución de montos
+        var ctx2 = document.getElementById("amount-distribution-chart").getContext("2d");
+        new Chart(ctx2, {
+            type: "pie",
+            data: {
+                labels: ["Paris", "Ripley"],
+                datasets: [{
+                    label: "Montos",
+                    backgroundColor: ["#17c1e8", "#82d616"],
+                    data: [{{ paris_amount }}, {{ ripley_amount }}]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

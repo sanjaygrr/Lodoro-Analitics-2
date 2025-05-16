@@ -1,0 +1,1 @@
+# Archivo de inicialización para el paquete templatetags 

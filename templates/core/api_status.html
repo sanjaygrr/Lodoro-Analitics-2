@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Estado de APIs - Lodoro Analytics{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Estado de APIs</h1>
+    <div>
+        <a href="{% url 'api_config_list' %}" class="btn btn-primary">
+            <i class="fas fa-cogs me-2"></i> Configuraciones de API
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">Estado Actual de Conexiones API</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Estado</th>
+                                <th>Última Verificación</th>
+                                <th>Mensaje de Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for api in apis %}
+                            <tr>
+                                <td>{{ api.name }}</td>
+                                <td>
+                                    {% if api.status == 'ACTIVA' %}
+                                    <span class="badge bg-success">{{ api.get_status_display }}</span>
+                                    {% elif api.status == 'INACTIVA' %}
+                                    <span class="badge bg-warning">{{ api.get_status_display }}</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">{{ api.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ api.last_check|date:"d/m/Y H:i:s" }}</td>
+                                <td>
+                                    {% if api.error_message %}
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#errorModal{{ api.id }}">
+                                        Ver Error
+                                    </button>
+                                    
+                                    <!-- Modal de Error -->
+                                    <div class="modal fade" id="errorModal{{ api.id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-danger text-white">
+                                                    <h5 class="modal-title">Error en API: {{ api.name }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <pre class="bg-light p-3">{{ api.error_message }}</pre>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No hay APIs configuradas</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">APIs Activas</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for api in apis %}
+                    {% if api.status == 'ACTIVA' %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ api.name }}</h6>
+                                <small class="text-muted">Última verificación: {{ api.last_check|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <span class="badge bg-success rounded-pill">
+                                <i class="fas fa-check"></i>
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-white">
+                <h5 class="card-title mb-0">APIs Inactivas</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for api in apis %}
+                    {% if api.status == 'INACTIVA' %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ api.name }}</h6>
+                                <small class="text-muted">Última verificación: {{ api.last_check|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <span class="badge bg-warning rounded-pill">
+                                <i class="fas fa-pause"></i>
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">APIs con Error</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for api in apis %}
+                    {% if api.status == 'ERROR' %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ api.name }}</h6>
+                                <small class="text-muted">Última verificación: {{ api.last_check|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#errorModal{{ api.id }}">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

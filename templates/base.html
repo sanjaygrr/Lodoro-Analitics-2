@@ -1,0 +1,870 @@
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Lodoro Analytics{% endblock %}</title>
+    {% bootstrap_css %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            overflow-x: hidden;
+        }
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #5a67d8 0%, #4c51bf 50%, #434190 100%);
+            color: white;
+            width: 250px;
+            position: fixed;
+            top: 0;
+            left: -250px;
+            transition: all 0.3s;
+            z-index: 1050;
+            box-shadow: 3px 0 12px rgba(0,0,0,0.15);
+        }
+        .sidebar.active {
+            left: 0;
+        }
+        .sidebar .sidebar-header {
+            padding: 15px;
+            background: linear-gradient(135deg, #4c51bf, #5a67d8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar .sidebar-header h3 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .sidebar a {
+            color: #e2e8f0;
+            text-decoration: none;
+            display: block;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+            border-radius: 0 20px 20px 0;
+            margin: 2px 0 2px 10px;
+        }
+        .sidebar a:hover {
+            color: white;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            transform: translateX(3px);
+        }
+        .sidebar a.active {
+            color: white;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            font-weight: 600;
+            border-left: 3px solid #f7fafc;
+        }
+        .sidebar-heading {
+            padding: 15px 20px 5px;
+            font-weight: 600;
+            color: #cbd5e1;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .content {
+            width: 100%;
+            min-height: 100vh;
+            transition: all 0.3s;
+            padding: 0;
+        }
+        /* Eliminamos el desplazamiento del contenido */
+        .content.active {
+            margin-left: 0;
+            width: 100%;
+        }
+        /* Contenedor para el padding */
+        .content-wrapper {
+            padding: 20px;
+            min-height: calc(100vh - 140px);
+            transition: all 0.3s;
+            margin-left: 0; /* Valor por defecto */
+        }
+        /* Aplicamos el margen al content-wrapper en su lugar */
+        .sidebar.active ~ #content .content-wrapper {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+        }
+        
+        /* NAVBAR MEJORADO - COLORES VIBRANTES PERO NO CHILLONES */
+        .navbar-top {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+            position: sticky;
+            top: 0;
+            z-index: 1040;
+            transition: all 0.3s;
+            height: auto;
+            min-height: 45px;
+        }
+        /* Margen para el navbar cuando el sidebar está activo */
+        .sidebar.active ~ #content .navbar-top {
+            width: calc(100% - 250px);
+            margin-left: 250px;
+        }
+        .navbar-brand-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 45%;
+        }
+        .navbar-btn {
+            box-shadow: none;
+            outline: none !important;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 0.9rem;
+            padding: 5px 6px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        .navbar-btn:hover {
+            color: #f0f4ff;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        .navbar-title-section {
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .navbar-brand {
+            color: white !important;
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .navbar-brand:hover {
+            color: #f0f4ff !important;
+        }
+        .navbar-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.7rem;
+            font-weight: 400;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .navbar-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .search-input {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: white;
+            padding: 8px 35px 8px 15px;
+            width: 250px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        .search-input:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        }
+        .search-input::placeholder {
+            color: #adb5bd;
+        }
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            color: #adb5bd;
+            pointer-events: none;
+        }
+        .notifications-container {
+            position: relative;
+        }
+        .notifications-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.1rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .notifications-btn:hover {
+            color: #0d6efd;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .user-profile-navbar {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .user-profile-navbar:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+        .user-avatar-navbar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .user-info-navbar {
+            color: white;
+            text-align: left;
+            margin-left: 6px;
+            max-width: 100px;
+            overflow: hidden;
+        }
+        .user-name-navbar {
+            font-weight: 600;
+            font-size: 0.7rem;
+            line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .user-role-navbar {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.65rem;
+            line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .breadcrumb-container {
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            padding: 8px 15px;
+            border-bottom: 1px solid #dee2e6;
+            box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        /* Aplicamos margen al breadcrumb cuando el sidebar está activo */
+        .sidebar.active ~ #content .breadcrumb-container {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+        }
+        .breadcrumb {
+            background: transparent;
+            padding: 0;
+            margin: 0;
+        }
+        .breadcrumb-item {
+            color: #6c757d;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .breadcrumb-item.active {
+            color: #495057;
+            font-weight: 600;
+        }
+        .breadcrumb-item a {
+            color: #6c757d;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .breadcrumb-item a:hover {
+            color: #495057;
+            text-decoration: underline;
+        }
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "/" !important;
+            color: #adb5bd;
+            font-weight: normal;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 998;
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+        }
+        .overlay.active {
+            display: block;
+            opacity: 1;
+        }
+        /* Solo mostrar overlay en móviles */
+        @media (min-width: 769px) {
+            .overlay {
+                display: none !important;
+            }
+        }
+        .user-profile {
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border-radius: 0;
+        }
+        .user-profile .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .user-profile .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: white;
+            font-weight: 600;
+        }
+        .user-profile .user-name {
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .user-profile .user-role {
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            font-weight: 400;
+        }
+        .user-profile .user-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 8px;
+        }
+        .user-profile .btn {
+            border-radius: 15px;
+            padding: 6px 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+        .user-profile .btn:hover {
+            transform: translateY(-1px);
+        }
+        .card-dashboard {
+            border-left: 4px solid #0d6efd;
+        }
+        .card-dashboard.new {
+            border-left-color: #198754;
+        }
+        .card-dashboard.processed {
+            border-left-color: #0dcaf0;
+        }
+        .card-dashboard.error {
+            border-left-color: #dc3545;
+        }
+        /* Ajustes para mejor visualización en zoom 100% */
+        .navbar-top {
+            min-height: 60px;
+        }
+        .sidebar {
+            overflow-y: auto;
+        }
+        .sidebar a {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* Scroll personalizado para el sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        /* Media query para móviles */
+        @media (max-width: 768px) {
+            .sidebar.active ~ #content .navbar-top,
+            .sidebar.active ~ #content .breadcrumb-container,
+            .sidebar.active ~ #content .content-wrapper {
+                margin-left: 0;
+                width: 100%;
+            }
+            .search-input {
+                width: 180px;
+            }
+            .user-info-navbar {
+                display: none;
+            }
+            .navbar-brand {
+                font-size: 1rem;
+            }
+            .navbar-subtitle {
+                display: none;
+            }
+            .user-profile-navbar {
+                padding: 3px 5px;
+            }
+        }
+        
+        /* Media queries para garantizar que se vean todos los elementos del navbar */
+        @media (min-width: 769px) and (max-width: 1199px) {
+            .navbar-subtitle {
+                display: none;
+            }
+            .navbar-brand {
+                font-size: 1.1rem;
+            }
+            .user-name-navbar {
+                max-width: 100px;
+            }
+        }
+        
+        /* Para pantallas más grandes */
+        @media (min-width: 1200px) {
+            .navbar-top {
+                padding: 12px 30px;
+            }
+            .navbar-tools {
+                gap: 20px;
+            }
+            .navbar-brand {
+                font-size: 1.3rem;
+            }
+            .navbar-subtitle {
+                font-size: 0.85rem;
+            }
+            .user-avatar-navbar {
+                width: 36px;
+                height: 36px;
+            }
+            .user-name-navbar {
+                font-size: 0.85rem;
+            }
+            .user-role-navbar {
+                font-size: 0.75rem;
+            }
+        }
+        /* Para pantallas extra pequeñas */
+        @media (max-width: 576px) {
+            .navbar-brand {
+                font-size: 0.9rem;
+            }
+            .navbar-subtitle {
+                display: none;
+            }
+            .user-avatar-navbar {
+                width: 24px;
+                height: 24px;
+                font-size: 0.6rem;
+            }
+            .navbar-btn {
+                padding: 3px 5px;
+            }
+        }
+        
+        /* Estilos para los dropdowns del sidebar */
+        .sidebar-item-container {
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-dropdown-toggle {
+            color: #e2e8f0;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-radius: 0;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .sidebar-dropdown-toggle .fa-chevron-down {
+            transition: transform 0.3s ease;
+            font-size: 0.7rem;
+        }
+        
+        .sidebar-dropdown-toggle.open .fa-chevron-down {
+            transform: rotate(-180deg);
+        }
+        
+        .sidebar-dropdown-toggle:hover {
+            color: white;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        }
+        
+        .sidebar-dropdown-menu {
+            display: none;
+            padding-left: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-dropdown-menu.show {
+            display: block;
+        }
+        
+        .sidebar-dropdown-menu a {
+            padding: 10px 20px 10px 30px;
+            position: relative;
+        }
+        
+        .sidebar-dropdown-menu a:before {
+            content: "";
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            width: 5px;
+            height: 1px;
+            background: rgba(255,255,255,0.5);
+        }
+        
+        .sidebar-dropdown-menu a.active {
+            color: white;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            font-weight: 600;
+            border-left: 3px solid #f7fafc;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Overlay para cerrar el sidebar en móviles -->
+    <div class="overlay"></div>
+
+    <!-- Sidebar -->
+    <nav id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>Lodoro Analytics</h3>
+            <button type="button" id="sidebarCollapseClose" class="navbar-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        {% if user.is_authenticated %}
+        <!-- Eliminamos la sección de perfil de usuario del sidebar -->
+        {% endif %}
+
+        <!-- Sección Principal como Dropdown -->
+        <div class="sidebar-item-container">
+            <a href="javascript:void(0)" class="sidebar-dropdown-toggle" data-target="principal-dropdown">
+                <i class="fas fa-th-large fa-fw me-2"></i> PRINCIPAL
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </a>
+            <div class="sidebar-dropdown-menu" id="principal-dropdown">
+                <a href="{% url 'home' %}" class="{% if request.path == '/' %}active{% endif %}">
+                    <i class="fas fa-home fa-fw me-2"></i> Inicio
+                </a>
+                <a href="{% url 'order_scanning' %}" class="{% if 'scanning' in request.path %}active{% endif %}">
+                    <i class="fas fa-barcode fa-fw me-2"></i> Pistolear Orden
+                </a>
+            </div>
+        </div>
+        
+        <!-- Sección Órdenes como Dropdown -->
+        <div class="sidebar-item-container">
+            <a href="javascript:void(0)" class="sidebar-dropdown-toggle" data-target="ordenes-dropdown">
+                <i class="fas fa-shopping-cart fa-fw me-2"></i> ÓRDENES
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </a>
+            <div class="sidebar-dropdown-menu" id="ordenes-dropdown">
+                <a href="{% url 'paris_orders' %}" class="{% if 'marketplace/paris' in request.path %}active{% endif %}">
+                    <i class="fas fa-shopping-bag fa-fw me-2"></i> Paris
+                </a>
+                <a href="{% url 'ripley_orders' %}" class="{% if 'marketplace/ripley' in request.path %}active{% endif %}">
+                    <i class="fas fa-shopping-cart fa-fw me-2"></i> Ripley
+                </a>
+                <a href="{% url 'orders_summary' %}" class="{% if 'marketplace/summary' in request.path %}active{% endif %}">
+                    <i class="fas fa-chart-pie fa-fw me-2"></i> Resumen
+                </a>
+            </div>
+        </div>
+        
+        <!-- Sección Análisis como Dropdown -->
+        <div class="sidebar-item-container">
+            <a href="javascript:void(0)" class="sidebar-dropdown-toggle" data-target="analisis-dropdown">
+                <i class="fas fa-chart-line fa-fw me-2"></i> ANÁLISIS
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </a>
+            <div class="sidebar-dropdown-menu" id="analisis-dropdown">
+                <a href="{% url 'sales_dashboard' %}" class="{% if 'analytics/dashboard' in request.path %}active{% endif %}">
+                    <i class="fas fa-chart-line fa-fw me-2"></i> Dashboard
+                </a>
+                <a href="{% url 'product_performance' %}" class="{% if 'analytics/products' in request.path %}active{% endif %}">
+                    <i class="fas fa-box fa-fw me-2"></i> Productos
+                </a>
+                <a href="{% url 'saved_analytics' %}" class="{% if 'analytics/saved' in request.path %}active{% endif %}">
+                    <i class="fas fa-save fa-fw me-2"></i> Guardados
+                </a>
+            </div>
+        </div>
+        
+        <!-- Sección Sistema como Dropdown -->
+        <div class="sidebar-item-container">
+            <a href="javascript:void(0)" class="sidebar-dropdown-toggle" data-target="sistema-dropdown">
+                <i class="fas fa-cogs fa-fw me-2"></i> SISTEMA
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </a>
+            <div class="sidebar-dropdown-menu" id="sistema-dropdown">
+                <a href="{% url 'api_status' %}" class="{% if 'api-status' in request.path %}active{% endif %}">
+                    <i class="fas fa-plug fa-fw me-2"></i> Estado APIs
+                </a>
+                <a href="{% url 'api_config_list' %}" class="{% if 'api-configs' in request.path %}active{% endif %}">
+                    <i class="fas fa-cogs fa-fw me-2"></i> Config. APIs
+                </a>
+                {% if user.is_staff %}
+                <a href="{% url 'admin:index' %}">
+                    <i class="fas fa-user-shield fa-fw me-2"></i> Admin
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content" class="content">
+        <!-- NUEVO NAVBAR MEJORADO -->
+        <nav class="navbar-top">
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <div class="navbar-brand-container">
+                    <button type="button" id="sidebarCollapse" class="navbar-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="navbar-title-section">
+                        <a href="{% url 'home' %}" class="navbar-brand">Lodoro</a>
+                        <span class="navbar-subtitle">Analytics</span>
+                    </div>
+                </div>
+                
+                <div class="navbar-tools">
+                    {% if user.is_authenticated %}
+                        <!-- Perfil de usuario -->
+                        <div class="user-profile-navbar dropdown">
+                            <div class="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                                <div class="user-avatar-navbar">
+                                    {{ user.username|first|upper }}
+                                </div>
+                                <div class="user-info-navbar">
+                                    <div class="user-name-navbar">{{ user.username }}</div>
+                                    <div class="user-role-navbar">
+                                        {% if user.is_staff %}Admin{% else %}User{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Dropdown del usuario -->
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Perfil</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Config</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if user.is_staff %}
+                                <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="fas fa-shield-alt me-2"></i> Admin</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Salir</a></li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+        
+
+
+        <!-- Content with padding -->
+        <div class="content-wrapper">
+            {% bootstrap_messages %}
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    {% bootstrap_javascript %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            const overlay = document.querySelector('.overlay');
+            const sidebarCollapse = document.getElementById('sidebarCollapse');
+            const sidebarCollapseClose = document.getElementById('sidebarCollapseClose');
+            
+            // Asegurarse de que el sidebar comienza cerrado siempre
+            sidebar.classList.remove('active');
+            
+            // Abrir sidebar
+            sidebarCollapse.addEventListener('click', function() {
+                sidebar.classList.add('active');
+                // Solo mostrar overlay en móviles
+                if (window.innerWidth <= 768) {
+                    overlay.classList.add('active');
+                }
+            });
+            
+            // Cerrar sidebar
+            sidebarCollapseClose.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+            
+            // Cerrar sidebar al hacer clic en overlay
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+            
+            // En pantallas grandes, NO mostrar sidebar por defecto
+            function checkWidth() {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                    // Solo en móviles, asegurarse de que el overlay esté oculto
+                    overlay.classList.remove('active');
+                }
+                // Ya no abrimos automáticamente en escritorio
+            }
+            
+            // Toggle para dropdown del sidebar
+            const dropdownToggles = document.querySelectorAll('.sidebar-dropdown-toggle');
+            
+            // Cerrar todos los dropdowns primero
+            function closeAllDropdowns() {
+                document.querySelectorAll('.sidebar-dropdown-menu').forEach(function(dropdown) {
+                    dropdown.classList.remove('show');
+                });
+                document.querySelectorAll('.sidebar-dropdown-toggle').forEach(function(toggle) {
+                    toggle.classList.remove('open');
+                });
+            }
+            
+            // Agregar evento click a cada toggle
+            dropdownToggles.forEach(function(toggle) {
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const targetId = this.getAttribute('data-target');
+                    const targetDropdown = document.getElementById(targetId);
+                    
+                    // Si el dropdown está abierto, solo lo cerramos
+                    if (this.classList.contains('open')) {
+                        this.classList.remove('open');
+                        targetDropdown.classList.remove('show');
+                    } else {
+                        // Si está cerrado, cerramos todos y luego abrimos éste
+                        closeAllDropdowns();
+                        this.classList.add('open');
+                        targetDropdown.classList.add('show');
+                    }
+                });
+            });
+            
+            // Abrir automáticamente solo el dropdown que contiene el elemento activo
+            // pero NO abrir automáticamente el sidebar
+            const activeLink = document.querySelector('.sidebar-dropdown-menu a.active');
+            if (activeLink) {
+                const parentDropdown = activeLink.closest('.sidebar-dropdown-menu');
+                if (parentDropdown) {
+                    parentDropdown.classList.add('show');
+                    const parentToggle = document.querySelector(`[data-target="${parentDropdown.id}"]`);
+                    if (parentToggle) {
+                        parentToggle.classList.add('open');
+                    }
+                }
+            }
+            
+            // Guardar estado de dropdowns abiertos
+            function saveDropdownState() {
+                const openDropdowns = [];
+                document.querySelectorAll('.sidebar-dropdown-toggle.open').forEach(function(toggle) {
+                    openDropdowns.push(toggle.getAttribute('data-target'));
+                });
+                localStorage.setItem('openDropdowns', JSON.stringify(openDropdowns));
+            }
+            
+            // Restaurar estado de dropdowns
+            function restoreDropdownState() {
+                // Restaurar dropdowns sin afectar al sidebar
+                const openDropdowns = JSON.parse(localStorage.getItem('openDropdowns') || '[]');
+                openDropdowns.forEach(function(dropdownId) {
+                    const toggle = document.querySelector(`[data-target="${dropdownId}"]`);
+                    const dropdown = document.getElementById(dropdownId);
+                    if (toggle && dropdown) {
+                        toggle.classList.add('open');
+                        dropdown.classList.add('show');
+                    }
+                });
+                // Asegurarse de que el sidebar permanece en su estado por defecto
+                sidebar.classList.remove('active');
+            }
+            
+            // Guardar estado antes de navegar
+            document.querySelectorAll('.sidebar-dropdown-menu a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    saveDropdownState();
+                });
+            });
+            
+            // Comprobar al cargar y al cambiar tamaño
+            checkWidth();
+            window.addEventListener('resize', checkWidth);
+            
+            // Restaurar estado al cargar la página (solo los dropdowns, no el sidebar)
+            restoreDropdownState();
+            
+            console.log('Navbar y sidebar configurados correctamente!');
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

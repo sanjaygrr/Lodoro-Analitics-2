@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Inicio - Lodoro Analytics{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Dashboard</h1>
+    <div>
+        <a href="{% url 'scan_order' %}" class="btn btn-primary">
+            <i class="fas fa-barcode me-2"></i> Pistolear Orden
+        </a>
+        <a href="{% url 'sales_dashboard' %}" class="btn btn-success">
+            <i class="fas fa-chart-line me-2"></i> Análisis de Ventas
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Órdenes Paris</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card card-dashboard">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted">Total</h6>
+                                        <h3>{{ paris_orders_total }}</h3>
+                                    </div>
+                                    <div class="text-primary">
+                                        <i class="fas fa-shopping-bag fa-3x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card card-dashboard new">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted">Nuevas</h6>
+                                        <h3>{{ paris_orders_new }}</h3>
+                                    </div>
+                                    <div class="text-success">
+                                        <i class="fas fa-plus-circle fa-3x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card card-dashboard processed">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted">Procesadas</h6>
+                                        <h3>{{ paris_orders_processed }}</h3>
+                                    </div>
+                                    <div class="text-info">
+                                        <i class="fas fa-check-circle fa-3x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card card-dashboard">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted">Este Mes</h6>
+                                        <h3>{{ paris_orders_this_month }}</h3>
+                                    </div>
+                                    <div class="text-primary">
+                                        <i class="fas fa-calendar fa-3x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'paris_orders' %}" class="btn btn-outline-primary">Ver Todas</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">Órdenes Ripley</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card card-dashboard">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted">Total</h6>
+                                        <h3>{{ ripley_orders_total }}</h3>
+                                    </div>
+                                    <div class="text-danger">
+                                        <i class="fas fa-shopping-cart fa-3x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card card-dashboard new">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted">Nuevas</h6>
+                                        <h3>{{ ripley_orders_new }}</h3>
+                                    </div>
+                                    <div class="text-success">
+                                        <i class="fas fa-plus-circle fa-3x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card card-dashboard processed">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted">Procesadas</h6>
+                                        <h3>{{ ripley_orders_processed }}</h3>
+                                    </div>
+                                    <div class="text-info">
+                                        <i class="fas fa-check-circle fa-3x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card card-dashboard">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="text-muted">Este Mes</h6>
+                                        <h3>{{ ripley_orders_this_month }}</h3>
+                                    </div>
+                                    <div class="text-danger">
+                                        <i class="fas fa-calendar fa-3x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'ripley_orders' %}" class="btn btn-outline-danger">Ver Todas</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">Estado de APIs</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="border-end">
+                            <h3 class="text-success">{{ apis_active }}</h3>
+                            <p class="text-muted">Activas</p>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="border-end">
+                            <h3 class="text-warning">{{ apis_inactive }}</h3>
+                            <p class="text-muted">Inactivas</p>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div>
+                            <h3 class="text-danger">{{ apis_error }}</h3>
+                            <p class="text-muted">Con Error</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'api_status' %}" class="btn btn-outline-info">Ver Detalles</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">Productos Más Vendidos (Este Mes)</h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="productsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="paris-tab" data-bs-toggle="tab" data-bs-target="#paris" type="button" role="tab">Paris</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="ripley-tab" data-bs-toggle="tab" data-bs-target="#ripley" type="button" role="tab">Ripley</button>
+                    </li>
+                </ul>
+                <div class="tab-content pt-3" id="productsTabContent">
+                    <div class="tab-pane fade show active" id="paris" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Producto</th>
+                                        <th class="text-end">Cantidad</th>
+                                        <th class="text-end">Ingresos</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in top_paris_products %}
+                                    <tr>
+                                        <td>{{ product.sku }}</td>
+                                        <td>{{ product.name }}</td>
+                                        <td class="text-end">{{ product.total_quantity }}</td>
+                                        <td class="text-end">${{ product.total_revenue|floatformat:0 }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No hay datos disponibles</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="ripley" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Producto</th>
+                                        <th class="text-end">Cantidad</th>
+                                        <th class="text-end">Ingresos</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in top_ripley_products %}
+                                    <tr>
+                                        <td>{{ product.sku }}</td>
+                                        <td>{{ product.name }}</td>
+                                        <td class="text-end">{{ product.total_quantity }}</td>
+                                        <td class="text-end">${{ product.total_revenue|floatformat:0 }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No hay datos disponibles</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'product_performance' %}" class="btn btn-outline-success">Ver Más</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuraciones de API | Lodoro Analytics{% endblock %}
+{% block page_title %}Configuraciones de API{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Configuraciones de API</h6>
+                            <p class="text-sm">
+                                <span class="font-weight-bold">Total:</span> {{ configs|length }} configuraciones
+                            </p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addConfigModal">
+                                <i class="fas fa-plus"></i> Nueva Configuración
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla de configuraciones -->
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Marketplace</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Nombre</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Endpoint</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Última Actualización</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Estado</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config in configs %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">{{ config.get_marketplace_display }}</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{ config.name }}</p>
+                                        <p class="text-xs text-secondary mb-0">{{ config.description|truncatechars:30 }}</p>
+                                    </td>
+                                    <td class="align-middle text-center text-sm">
+                                        <p class="text-xs font-weight-bold mb-0">{{ config.endpoint|truncatechars:30 }}</p>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ config.updated_at|date:"d/m/Y H:i" }}</span>
+                                    </td>
+                                    <td class="align-middle text-center text-sm">
+                                        {% if config.is_active %}
+                                            <span class="badge badge-sm bg-gradient-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge badge-sm bg-gradient-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <button class="btn btn-link text-secondary mb-0" data-bs-toggle="modal" data-bs-target="#editConfigModal{{ config.id }}">
+                                            <i class="fas fa-edit text-xs"></i> Editar
+                                        </button>
+                                        <button class="btn btn-link text-danger mb-0" data-bs-toggle="modal" data-bs-target="#deleteConfigModal{{ config.id }}">
+                                            <i class="fas fa-trash text-xs"></i> Eliminar
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <p class="text-secondary mb-0">No hay configuraciones de API registradas</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar configuración -->
+<div class="modal fade" id="addConfigModal" tabindex="-1" aria-labelledby="addConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addConfigModalLabel">Nueva Configuración de API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'api_config_add' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="marketplace">Marketplace</label>
+                                <select class="form-control" id="marketplace" name="marketplace" required>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="PARIS">Paris</option>
+                                    <option value="RIPLEY">Ripley</option>
+                                    <option value="FALABELLA">Falabella</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="name">Nombre</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="form-group">
+                                <label for="description">Descripción</label>
+                                <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="form-group">
+                                <label for="endpoint">Endpoint</label>
+                                <input type="text" class="form-control" id="endpoint" name="endpoint" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <div class="form-group">
+                                <label for="api_key">API Key</label>
+                                <input type="password" class="form-control" id="api_key" name="api_key">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <div class="form-group">
+                                <label for="api_secret">API Secret</label>
+                                <input type="password" class="form-control" id="api_secret" name="api_secret">
+                            </div>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                <label class="form-check-label" for="is_active">
+                                    Activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales para editar y eliminar configuraciones -->
+{% for config in configs %}
+<!-- Modal para editar -->
+<div class="modal fade" id="editConfigModal{{ config.id }}" tabindex="-1" aria-labelledby="editConfigModalLabel{{ config.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editConfigModalLabel{{ config.id }}">Editar Configuración de API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'api_config_edit' config.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="marketplace{{ config.id }}">Marketplace</label>
+                                <select class="form-control" id="marketplace{{ config.id }}" name="marketplace" required>
+                                    <option value="PARIS" {% if config.marketplace == 'PARIS' %}selected{% endif %}>Paris</option>
+                                    <option value="RIPLEY" {% if config.marketplace == 'RIPLEY' %}selected{% endif %}>Ripley</option>
+                                    <option value="FALABELLA" {% if config.marketplace == 'FALABELLA' %}selected{% endif %}>Falabella</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="name{{ config.id }}">Nombre</label>
+                                <input type="text" class="form-control" id="name{{ config.id }}" name="name" value="{{ config.name }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="form-group">
+                                <label for="description{{ config.id }}">Descripción</label>
+                                <textarea class="form-control" id="description{{ config.id }}" name="description" rows="2">{{ config.description }}</textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="form-group">
+                                <label for="endpoint{{ config.id }}">Endpoint</label>
+                                <input type="text" class="form-control" id="endpoint{{ config.id }}" name="endpoint" value="{{ config.endpoint }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <div class="form-group">
+                                <label for="api_key{{ config.id }}">API Key</label>
+                                <input type="password" class="form-control" id="api_key{{ config.id }}" name="api_key" placeholder="Dejar en blanco para mantener">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <div class="form-group">
+                                <label for="api_secret{{ config.id }}">API Secret</label>
+                                <input type="password" class="form-control" id="api_secret{{ config.id }}" name="api_secret" placeholder="Dejar en blanco para mantener">
+                            </div>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active{{ config.id }}" name="is_active" {% if config.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active{{ config.id }}">
+                                    Activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para eliminar -->
+<div class="modal fade" id="deleteConfigModal{{ config.id }}" tabindex="-1" aria-labelledby="deleteConfigModalLabel{{ config.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfigModalLabel{{ config.id }}">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea eliminar la configuración <strong>{{ config.name }}</strong> para <strong>{{ config.get_marketplace_display }}</strong>?</p>
+                <p class="text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'api_config_delete' config.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %} 

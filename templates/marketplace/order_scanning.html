@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+
+{% block title %}Pistolaje de Órdenes | Lodoro Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Pistolaje de Órdenes</h6>
+                            <p class="text-sm">Escanee el código de la orden y luego los productos</p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <a href="{% url 'home' %}" class="btn btn-outline-primary btn-sm mb-0">Volver al Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Área de escaneo -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <form method="post" id="scanForm" autocomplete="off">
+                                        {% csrf_token %}
+                                        {% if order_data %}
+                                            <input type="hidden" name="order_id" value="{{ order_data.order.order_id }}">
+                                        {% endif %}
+                                        <div class="form-group">
+                                            <label for="scanned_code">
+                                                {% if not order_data %}
+                                                    Escanee el código de la orden (subOrderNumber, originOrderNumber o ID)
+                                                {% else %}
+                                                    Escanee el código de barras del producto (EAN, SKU o código interno)
+                                                {% endif %}
+                                            </label>
+                                            <input type="text" class="form-control form-control-lg" id="scanned_code" name="scanned_code" autofocus>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary d-none">Escanear</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mensajes de estado -->
+                    {% if scan_message %}
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="alert alert-{{ scan_status|default:'info' }} alert-dismissible fade show" role="alert">
+                                <span class="alert-text">{{ scan_message }}</span>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Información de la orden -->
+                    {% if order_data %}
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header pb-0">
+                                    <h6>Información de la Orden - {{ order_data.marketplace|title }}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group">
+                                        {% if order_data.marketplace == 'paris' %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Número de Orden:</span>
+                                            <span class="badge bg-primary">{{ order_data.order.originOrderNumber }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Sub Orden:</span>
+                                            <span class="badge bg-info">{{ order_data.order.subOrderNumber }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Cliente:</span>
+                                            <span>{{ order_data.order.full_name|default:order_data.order.customer_name }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Documento:</span>
+                                            <span>{{ order_data.order.customer_documentType }} {{ order_data.order.customer_documentNumber }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Dirección:</span>
+                                            <span>{{ order_data.order.full_address }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Ciudad:</span>
+                                            <span>{{ order_data.order.city }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Teléfono:</span>
+                                            <span>{{ order_data.order.phone }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Email:</span>
+                                            <span>{{ order_data.order.email }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Fecha:</span>
+                                            <span>{{ order_data.order.createdAt|date:"d/m/Y H:i" }}</span>
+                                        </li>
+                                        {% if order_data.order.boleta_number %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Boleta Bsale:</span>
+                                            <span class="badge bg-success">
+                                                {% if order_data.order.boleta_url != 'https://example.com/boleta/' %}
+                                                    <a href="{{ order_data.order.boleta_url }}" target="_blank" class="text-white">
+                                                        {{ order_data.order.boleta_number }}
+                                                    </a>
+                                                {% else %}
+                                                    {{ order_data.order.boleta_number }}
+                                                {% endif %}
+                                            </span>
+                                        </li>
+                                        {% endif %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Productos (sin IVA):</span>
+                                            <span class="badge bg-secondary">${{ order_data.order.total_sin_iva|default:order_data.order.products_total|floatformat:0 }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>IVA:</span>
+                                            <span class="badge bg-secondary">${{ order_data.order.iva|floatformat:0 }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Despacho:</span>
+                                            <span class="badge bg-secondary">${{ order_data.order.despacho|floatformat:0 }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Total con IVA:</span>
+                                            <span class="badge bg-dark">${{ order_data.order.total_con_iva|default:order_data.order.order_total|floatformat:0 }}</span>
+                                        </li>
+                                        {% elif order_data.marketplace == 'ripley' %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>ID de Orden:</span>
+                                            <span class="badge bg-primary">{{ order_data.order.order_id }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>ID Comercial:</span>
+                                            <span class="badge bg-info">{{ order_data.order.commercial_id }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Cliente:</span>
+                                            <span>{{ order_data.order.full_name|default:"No disponible" }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Zona de Envío:</span>
+                                            <span>{{ order_data.order.shipping_zone_label }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Fecha:</span>
+                                            <span>{{ order_data.order.created_date|date:"d/m/Y H:i" }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Estado:</span>
+                                            <span class="badge bg-warning text-dark">{{ order_data.order.order_state }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Método de Pago:</span>
+                                            <span>{{ order_data.order.payment_type }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Tipo de Envío:</span>
+                                            <span>{{ order_data.order.shipping_type_label }}</span>
+                                        </li>
+                                        {% if order_data.order.boleta_number %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Boleta Bsale:</span>
+                                            <span class="badge bg-success">
+                                                {% if order_data.order.boleta_url %}
+                                                    <a href="{{ order_data.order.boleta_url }}" target="_blank" class="text-white">
+                                                        {{ order_data.order.boleta_number }}
+                                                    </a>
+                                                {% else %}
+                                                    {{ order_data.order.boleta_number }}
+                                                {% endif %}
+                                            </span>
+                                        </li>
+                                        {% endif %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Productos (sin IVA):</span>
+                                            <span class="badge bg-secondary">${{ order_data.order.productos_sin_iva|default:order_data.order.subtotal_price|floatformat:0 }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>IVA:</span>
+                                            <span class="badge bg-secondary">${{ order_data.order.iva|floatformat:0 }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Despacho:</span>
+                                            <span class="badge bg-secondary">${{ order_data.order.despacho|default:order_data.order.shipping_price|floatformat:0 }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Total con IVA:</span>
+                                            <span class="badge bg-dark">${{ order_data.order.total_con_iva|default:order_data.order.total_price|floatformat:0 }}</span>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header pb-0">
+                                    <h6>Productos Escaneados</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group">
+                                        {% for item in scanned_items %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>{{ item.name }}</span>
+                                            <span class="badge bg-success">{{ item.time }}</span>
+                                        </li>
+                                        {% empty %}
+                                        <li class="list-group-item text-center">
+                                            <span class="text-muted">No hay productos escaneados aún</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabla de productos -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header pb-0">
+                                    <h6>Productos de la Orden</h6>
+                                </div>
+                                <div class="card-body px-0 pt-0 pb-2">
+                                    <div class="table-responsive p-0">
+                                        <table class="table align-items-center mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">SKU / Código</th>
+                                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Nombre</th>
+                                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Cantidad</th>
+                                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Precio</th>
+                                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Bsale</th>
+                                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in order_data.items %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex px-2 py-1">
+                                                            <div class="d-flex flex-column justify-content-center">
+                                                                <h6 class="mb-0 text-sm">{{ item.sku }}</h6>
+                                                                {% if item.codigo_bsale %}
+                                                                <p class="text-xs text-secondary mb-0">Código Bsale: {{ item.codigo_bsale }}</p>
+                                                                {% endif %}
+                                                                {% if item.codigo_barras %}
+                                                                <p class="text-xs text-secondary mb-0">EAN: {{ item.codigo_barras }}</p>
+                                                                {% endif %}
+                                                                {% if item.bsale_barcode and item.bsale_barcode != item.codigo_barras %}
+                                                                <p class="text-xs text-secondary mb-0">EAN: {{ item.bsale_barcode }}</p>
+                                                                {% endif %}
+                                                                {% if item.bsale_code and item.bsale_code != item.codigo_bsale %}
+                                                                <p class="text-xs text-secondary mb-0">Código: {{ item.bsale_code }}</p>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        {% if order_data.marketplace == 'paris' %}
+                                                        <p class="text-xs font-weight-bold mb-0">{{ item.name }}</p>
+                                                        {% if item.bsale_product_name and item.name != item.bsale_product_name %}
+                                                        <p class="text-xs text-secondary mb-0">{{ item.bsale_product_name }}</p>
+                                                        {% endif %}
+                                                        {% if item.es_despacho %}
+                                                        <span class="badge badge-sm bg-warning text-dark">Despacho</span>
+                                                        {% endif %}
+                                                        {% else %}
+                                                        <p class="text-xs font-weight-bold mb-0">{{ item.product_name }}</p>
+                                                        {% if item.bsale_product_name and item.product_name != item.bsale_product_name %}
+                                                        <p class="text-xs text-secondary mb-0">{{ item.bsale_product_name }}</p>
+                                                        {% endif %}
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="align-middle text-center">
+                                                        <span class="text-secondary text-xs font-weight-bold">{{ item.quantity }}</span>
+                                                    </td>
+                                                    <td class="align-middle text-center">
+                                                        {% if order_data.marketplace == 'paris' %}
+                                                        <span class="text-secondary text-xs font-weight-bold">
+                                                            ${{ item.priceAfterDiscounts|floatformat:0 }}
+                                                            {% if item.precio_sin_iva %}
+                                                            <br><small>(Sin IVA: ${{ item.precio_sin_iva|floatformat:0 }})</small>
+                                                            {% endif %}
+                                                        </span>
+                                                        {% else %}
+                                                        <span class="text-secondary text-xs font-weight-bold">
+                                                            ${{ item.total_price|floatformat:0 }}
+                                                            {% if item.total_price_con_iva %}
+                                                            <br><small>(Con IVA: ${{ item.total_price_con_iva|floatformat:0 }})</small>
+                                                            {% endif %}
+                                                        </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="align-middle text-center">
+                                                        {% if item.bsale_variant_id %}
+                                                        <span class="badge badge-sm bg-info text-white">{{ item.bsale_variant_id }}</span>
+                                                        {% else %}
+                                                        <span class="badge badge-sm bg-secondary text-white">No vinculado</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="align-middle text-center text-sm">
+                                                        {% if item.scanned %}
+                                                            <span class="badge badge-sm bg-success text-white">Escaneado</span>
+                                                        {% else %}
+                                                            <span class="badge badge-sm bg-warning text-white">Pendiente</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="6" class="text-center py-4">
+                                                        <p class="text-secondary mb-0">No hay productos en esta orden</p>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enfocar automáticamente el campo de escaneo
+        document.getElementById('scanned_code').focus();
+        
+        // Enviar el formulario automáticamente al escanear
+        document.getElementById('scanForm').addEventListener('submit', function() {
+            document.querySelector('.btn-primary').classList.add('disabled');
+        });
+        
+        // Establecer un temporizador para volver a enfocar el campo de escaneo
+        setInterval(function() {
+            document.getElementById('scanned_code').focus();
+        }, 2000);
+    });
+</script>
+{% endblock %} 

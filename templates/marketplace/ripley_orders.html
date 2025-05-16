@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block title %}Órdenes Ripley | Lodoro Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Órdenes Ripley</h6>
+                            <p class="text-sm">
+                                <span class="font-weight-bold">Total:</span> {{ total_orders }} órdenes
+                                <span class="font-weight-bold ml-3">Monto Total:</span> ${{ total_amount|floatformat:0 }}
+                            </p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <a href="{% url 'home' %}" class="btn btn-outline-primary btn-sm mb-0">Volver al Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtros -->
+                <div class="card-header pb-0">
+                    <form method="get" action="{% url 'ripley_orders' %}">
+                        <div class="row">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="status">Estado</label>
+                                    <select class="form-control" id="status" name="status">
+                                        <option value="" {% if not status_filter %}selected{% endif %}>Todos</option>
+                                        <option value="NUEVA" {% if status_filter == 'NUEVA' %}selected{% endif %}>Nueva</option>
+                                        <option value="PROCESADA" {% if status_filter == 'PROCESADA' %}selected{% endif %}>Procesada</option>
+                                        <option value="ENVIADA" {% if status_filter == 'ENVIADA' %}selected{% endif %}>Enviada</option>
+                                        <option value="CANCELADA" {% if status_filter == 'CANCELADA' %}selected{% endif %}>Cancelada</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="processed">Procesada</label>
+                                    <select class="form-control" id="processed" name="processed">
+                                        <option value="" {% if not processed_filter %}selected{% endif %}>Todos</option>
+                                        <option value="yes" {% if processed_filter == 'yes' %}selected{% endif %}>Sí</option>
+                                        <option value="no" {% if processed_filter == 'no' %}selected{% endif %}>No</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="printed">Impresa</label>
+                                    <select class="form-control" id="printed" name="printed">
+                                        <option value="" {% if not printed_filter %}selected{% endif %}>Todos</option>
+                                        <option value="yes" {% if printed_filter == 'yes' %}selected{% endif %}>Sí</option>
+                                        <option value="no" {% if printed_filter == 'no' %}selected{% endif %}>No</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="date_from">Desde</label>
+                                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="date_to">Hasta</label>
+                                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="search">Buscar</label>
+                                    <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="ID Orden...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+                                <a href="{% url 'ripley_orders' %}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Tabla de órdenes -->
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">ID Orden</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Tipo Envío</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Fecha</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Monto</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Boleta</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Estado</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">{{ order.order_id }}</h6>
+                                                <p class="text-xs text-secondary mb-0">Com: {{ order.commercial_id|default:"-" }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{ order.shipping_type_label|default:"-" }}</p>
+                                        <p class="text-xs text-secondary mb-0">{{ order.shipping_zone_label|default:"-" }}</p>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ order.created_date|date:"d/m/Y H:i" }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">${{ order.total_amount|floatformat:0 }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        {% if order.boleta_number and order.boleta_url %}
+                                            <a href="{{ order.boleta_url }}" target="_blank" class="text-primary text-xs font-weight-bold">
+                                                {{ order.boleta_number }}
+                                                <i class="fas fa-external-link-alt ms-1"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-secondary text-xs">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle text-center text-sm">
+                                        {% if order.orden_procesada %}
+                                            <span class="badge badge-sm bg-success text-white">Procesada</span>
+                                        {% else %}
+                                            <span class="badge badge-sm bg-info text-white">Nueva</span>
+                                        {% endif %}
+                                        
+                                        {% if order.orden_impresa %}
+                                            <span class="badge badge-sm bg-dark text-white">Impresa</span>
+                                        {% endif %}
+                                        
+                                        {% if order.order_state %}
+                                            <span class="badge badge-sm bg-primary text-white">{{ order.order_state }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        {% if order.order_id %}
+                                        <a href="{% url 'ripley_order_detail' order_id=order.order_id %}" class="btn btn-link text-secondary mb-0">
+                                            <i class="fa fa-eye text-xs"></i> Ver
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">No disponible</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <p class="text-secondary mb-0">No se encontraron órdenes con los filtros seleccionados</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    {% if total_pages > 1 %}
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav aria-label="Navegación de páginas">
+                            <ul class="pagination">
+                                {% if has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Primera">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ previous_page }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Anterior">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" aria-label="Primera">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" aria-label="Anterior">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for i in page_range %}
+                                    {% if page == i %}
+                                        <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ i }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ i }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ next_page }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Siguiente">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ total_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Última">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" aria-label="Siguiente">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" aria-label="Última">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    <div class="text-center mt-2">
+                        <p class="text-sm text-secondary">
+                            Mostrando {{ offset|add:1 }} a {{ offset|add:orders|length }} de {{ total_orders }} órdenes
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

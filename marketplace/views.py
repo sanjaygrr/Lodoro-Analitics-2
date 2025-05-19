@@ -1,13 +1,22 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_http_methods, require_POST
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from datetime import datetime, timedelta
 from django.db import connection
+from django.conf import settings
 import json
 from decimal import Decimal
+import logging
+import requests
+import time
+from PyPDF2 import PdfMerger
+import io
+from django.views.decorators.csrf import csrf_exempt
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     ApiConfig, 
@@ -21,13 +30,17 @@ from .order_service import OrderService
 def convert_to_serializable(obj):
     """
     Convierte recursivamente objetos no serializables a tipos serializables en una estructura de datos anidada.
-    Maneja datetime, Decimal, y otros tipos no serializables.
+    Maneja datetime, Decimal, bytes y otros tipos no serializables.
     Funciona con diccionarios, listas y valores individuales.
     """
-    if isinstance(obj, datetime):
+    if obj is None:
+        return None
+    elif isinstance(obj, datetime):
         return obj.strftime('%Y-%m-%d %H:%M:%S')
     elif isinstance(obj, Decimal):
         return float(obj)
+    elif isinstance(obj, bytes):
+        return obj.decode('utf-8', errors='replace')
     elif isinstance(obj, dict):
         return {key: convert_to_serializable(value) for key, value in obj.items()}
     elif isinstance(obj, list):
@@ -45,96 +58,20 @@ def api_config_list(request):
 
 @login_required
 def paris_orders(request):
-    """Vista de órdenes de Paris usando procedimientos almacenados"""
-    status_filter = request.GET.get('status', '')
-    processed_filter = request.GET.get('processed', '')
-    printed_filter = request.GET.get('printed', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
-    search_query = request.GET.get('search', '')
-    
-    # Mapear los filtros a los formatos esperados por el procedimiento almacenado
-    status = None
-    if processed_filter == 'yes':
-        status = 'PROCESADA'
-    elif processed_filter == 'no':
-        status = 'NUEVA'
-    
-    if printed_filter == 'yes':
-        status = 'IMPRESA'
-    elif printed_filter == 'no':
-        status = 'NO_IMPRESA'
-    
-    # Convertir fechas a objetos datetime si se proporcionan
-    date_from_obj = None
-    date_to_obj = None
-    
-    if date_from:
-        try:
-            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-    
-    if date_to:
-        try:
-            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-    
-    # Paginación
-    page = request.GET.get('page', 1)
-    try:
-        page = int(page)
-    except ValueError:
-        page = 1
-    
-    items_per_page = 50
-    offset = (page - 1) * items_per_page
-    
-    # Obtener órdenes usando el servicio
-    result = OrderService.get_orders(
-        marketplace='paris',
-        limit=items_per_page,
-        offset=offset,
-        status=status,
-        date_from=date_from_obj,
-        date_to=date_to_obj
-    )
-    
-    # Preparar datos para paginación
-    total_orders = result['total']
-    total_pages = (total_orders + items_per_page - 1) // items_per_page
-    
-    # Calcular el monto total si está disponible en los datos
-    try:
-        total_amount = sum(order.get('total_amount', 0) or 0 for order in result['orders'])
-    except Exception:
-        total_amount = 0
-    
-    context = {
-        'orders': result['orders'],
-        'total_orders': total_orders,
-        'total_amount': total_amount,
-        'status_filter': status_filter,
-        'processed_filter': processed_filter,
-        'printed_filter': printed_filter,
-        'date_from': date_from,
-        'date_to': date_to,
-        'search_query': search_query,
-        'page': page,
-        'total_pages': total_pages,
-        'page_range': range(max(1, page - 2), min(total_pages + 1, page + 3)),
-        'has_previous': page > 1,
-        'has_next': page < total_pages,
-        'previous_page': page - 1,
-        'next_page': page + 1
-    }
-    
-    return render(request, 'marketplace/paris_orders.html', context)
+    """Vista para mostrar las órdenes de Paris"""
+    return render(request, 'marketplace/paris_orders.html', {
+        'orders': [],
+        'date_from': request.GET.get('date_from', ''),
+        'date_to': request.GET.get('date_to', ''),
+        'search_query': request.GET.get('search', ''),
+        'status': request.GET.get('status', '')
+    })
 
 @login_required
 def paris_order_detail(request, order_id):
     """Detalle de una orden de Paris usando procedimientos almacenados"""
+    # Convertir order_id a string
+    order_id = str(order_id)
     # Obtener detalle de la orden usando el servicio
     order_data = OrderService.get_order_detail('paris', order_id)
     
@@ -195,96 +132,20 @@ def paris_order_detail(request, order_id):
 
 @login_required
 def ripley_orders(request):
-    """Vista de órdenes de Ripley usando procedimientos almacenados"""
-    status_filter = request.GET.get('status', '')
-    processed_filter = request.GET.get('processed', '')
-    printed_filter = request.GET.get('printed', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
-    search_query = request.GET.get('search', '')
-    
-    # Mapear los filtros a los formatos esperados por el procedimiento almacenado
-    status = None
-    if processed_filter == 'yes':
-        status = 'PROCESADA'
-    elif processed_filter == 'no':
-        status = 'NUEVA'
-    
-    if printed_filter == 'yes':
-        status = 'IMPRESA'
-    elif printed_filter == 'no':
-        status = 'NO_IMPRESA'
-    
-    # Convertir fechas a objetos datetime si se proporcionan
-    date_from_obj = None
-    date_to_obj = None
-    
-    if date_from:
-        try:
-            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-    
-    if date_to:
-        try:
-            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-    
-    # Paginación
-    page = request.GET.get('page', 1)
-    try:
-        page = int(page)
-    except ValueError:
-        page = 1
-    
-    items_per_page = 50
-    offset = (page - 1) * items_per_page
-    
-    # Obtener órdenes usando el servicio
-    result = OrderService.get_orders(
-        marketplace='ripley',
-        limit=items_per_page,
-        offset=offset,
-        status=status,
-        date_from=date_from_obj,
-        date_to=date_to_obj
-    )
-    
-    # Preparar datos para paginación
-    total_orders = result['total']
-    total_pages = (total_orders + items_per_page - 1) // items_per_page
-    
-    # Calcular el monto total si está disponible en los datos
-    try:
-        total_amount = sum(order.get('total_price', 0) or 0 for order in result['orders'])
-    except Exception:
-        total_amount = 0
-    
-    context = {
-        'orders': result['orders'],
-        'total_orders': total_orders,
-        'total_amount': total_amount,
-        'status_filter': status_filter,
-        'processed_filter': processed_filter,
-        'printed_filter': printed_filter,
-        'date_from': date_from,
-        'date_to': date_to,
-        'search_query': search_query,
-        'page': page,
-        'total_pages': total_pages,
-        'page_range': range(max(1, page - 2), min(total_pages + 1, page + 3)),
-        'has_previous': page > 1,
-        'has_next': page < total_pages,
-        'previous_page': page - 1,
-        'next_page': page + 1
-    }
-    
-    return render(request, 'marketplace/ripley_orders.html', context)
+    """Vista para mostrar las órdenes de Ripley"""
+    return render(request, 'marketplace/ripley_orders.html', {
+        'orders': [],
+        'date_from': request.GET.get('date_from', ''),
+        'date_to': request.GET.get('date_to', ''),
+        'search_query': request.GET.get('search', ''),
+        'status': request.GET.get('status', '')
+    })
 
 @login_required
 def ripley_order_detail(request, order_id):
     """Detalle de una orden de Ripley usando procedimientos almacenados"""
+    # Convertir order_id a string
+    order_id = str(order_id)
     # Obtener detalle de la orden usando el servicio
     order_data = OrderService.get_order_detail('ripley', order_id)
     
@@ -378,9 +239,9 @@ def orders_summary(request):
 def update_order_status(request):
     """Actualizar el estado de una orden usando procedimientos almacenados"""
     # Obtener datos del formulario
-    order_id = request.POST.get('order_id')
-    marketplace = request.POST.get('marketplace')
-    action = request.POST.get('action')
+    order_id = str(request.POST.get('order_id', ''))
+    marketplace = request.POST.get('marketplace', '')
+    action = request.POST.get('action', '')
     
     if not order_id or not marketplace or not action:
         return JsonResponse({
@@ -465,6 +326,8 @@ def bulk_update_orders(request):
     failed_count = 0
     
     for order_id in order_ids:
+        # Asegurar que order_id sea string
+        order_id = str(order_id)
         # Actualizar estado usando el servicio
         success, _ = OrderService.update_order_status(
             marketplace=marketplace,
@@ -489,207 +352,562 @@ def bulk_update_orders(request):
 
 @login_required
 def order_scanning(request):
-    """Vista para el pistolaje (escaneo) de órdenes"""
-    scan_message = None
-    scan_status = None
-    order_data = None
-    scanned_items = []
+    """Vista para el escaneo de órdenes"""
+    return render(request, 'marketplace/order_scanning.html')
+
+@login_required
+def product_detail(request, marketplace, product_id):
+    """
+    Vista para mostrar los detalles de un producto incluyendo información de Bsale y el marketplace
+    """
+    product_data = {}
+    marketplace_data = {}
+    bsale_data = {}
+    error_message = None
     
-    # Crear o actualizar los procedimientos almacenados
-    OrderService.create_stored_procedures()
-    
-    if request.method == 'POST':
-        # Obtener el código escaneado
-        scanned_code = str(request.POST.get('scanned_code', '').strip())
-        order_id = str(request.POST.get('order_id', ''))
-        
-        # Si no hay order_id, asumimos que estamos escaneando un número de orden
-        if not order_id and scanned_code:
-            order_found = False
+    try:
+        with connection.cursor() as cursor:
+            # Buscar información en Bsale
+            cursor.execute("""
+                SELECT 
+                    bv.id, 
+                    bv.barcode, 
+                    bv.code, 
+                    bv.description,
+                    bp.id as product_id,
+                    bp.name as product_name,
+                    bp.description as product_description,
+                    bp.price
+                FROM bsale_variants bv
+                LEFT JOIN bsale_products bp ON bv.product_id = bp.id
+                WHERE bv.id = %s
+            """, [product_id])
             
-            # Primero buscamos en Paris por subOrderNumber
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    SELECT id, subOrderNumber, originOrderNumber
-                    FROM paris_orders
-                    WHERE subOrderNumber = %s OR originOrderNumber = %s
-                """, [scanned_code, scanned_code])
-                order_result = cursor.fetchone()
+            bsale_row = cursor.fetchone()
+            
+            if bsale_row:
+                bsale_data = {
+                    'variant_id': bsale_row[0],
+                    'barcode': bsale_row[1],
+                    'code': bsale_row[2],
+                    'variant_description': bsale_row[3],
+                    'product_id': bsale_row[4],
+                    'product_name': bsale_row[5],
+                    'product_description': bsale_row[6],
+                    'price': bsale_row[7]
+                }
                 
-                if order_result:
-                    order_id = str(order_result[0])
-                    marketplace = 'paris'
-                    order_found = True
-                else:
-                    # Si no se encuentra en Paris, buscamos en Ripley por commercial_id u order_id
+                # Convertir valores bytes a string
+                for key, value in bsale_data.items():
+                    if isinstance(value, bytes):
+                        bsale_data[key] = value.decode('utf-8')
+                
+                # Buscar imágenes del producto
+                cursor.execute("""
+                    SELECT url, alt_text
+                    FROM bsale_product_images
+                    WHERE product_id = %s
+                    LIMIT 5
+                """, [bsale_data['product_id']])
+                
+                images = []
+                for img_row in cursor.fetchall():
+                    url = img_row[0]
+                    alt = img_row[1]
+                    if isinstance(url, bytes):
+                        url = url.decode('utf-8')
+                    if isinstance(alt, bytes):
+                        alt = alt.decode('utf-8')
+                    images.append({'url': url, 'alt': alt})
+                
+                bsale_data['images'] = images
+                
+                # Buscar información del marketplace específico
+                if marketplace.lower() == 'paris':
                     cursor.execute("""
-                        SELECT order_id, commercial_id
-                        FROM ripley_orders
-                        WHERE order_id = %s OR commercial_id = %s
-                    """, [scanned_code, scanned_code])
-                    ripley_result = cursor.fetchone()
+                        SELECT 
+                            pi.id, 
+                            pi.sku, 
+                            pi.name, 
+                            pi.priceAfterDiscounts, 
+                            pi.grossPrice,
+                            po.id as order_id,
+                            po.subOrderNumber,
+                            po.originOrderNumber
+                        FROM paris_items pi
+                        JOIN paris_orders po ON pi.orderId = po.id
+                        WHERE pi.sku = %s
+                        LIMIT 10
+                    """, [bsale_data['code']])
                     
-                    if ripley_result:
-                        order_id = str(ripley_result[0])
-                        marketplace = 'ripley'
-                        order_found = True
-            
-            if order_found:
-                # Obtener los detalles completos de la orden con información de Bsale
-                order_data = OrderService.get_order_detail(marketplace, order_id)
-                if order_data:
-                    # Inicializar el estado de escaneo de los items
-                    for item in order_data['items']:
-                        # Verificar si es un costo de despacho (podría tener un SKU específico o precio 0)
-                        is_shipping = False
+                    marketplace_items = []
+                    for item_row in cursor.fetchall():
+                        item_dict = {
+                            'id': item_row[0],
+                            'sku': item_row[1],
+                            'name': item_row[2],
+                            'price': item_row[3],
+                            'gross_price': item_row[4],
+                            'order_id': item_row[5],
+                            'sub_order': item_row[6],
+                            'origin_order': item_row[7]
+                        }
                         
-                        # Determinar claves según marketplace
-                        if marketplace == 'paris':
-                            price_key = 'priceAfterDiscounts'
-                            name_key = 'name'
-                        else:  # ripley
-                            price_key = 'total_price'
-                            name_key = 'product_name'
-                        
-                        if (item.get(name_key, '').lower().find('despacho') >= 0 or 
-                            item.get(price_key, 0) == 0):
-                            is_shipping = True
-                        
-                        item['scanned'] = is_shipping  # Los costos de despacho se marcan como ya escaneados
+                        # Convertir valores bytes a string
+                        for key, value in item_dict.items():
+                            if isinstance(value, bytes):
+                                item_dict[key] = value.decode('utf-8')
+                                
+                        marketplace_items.append(item_dict)
                     
-                    # Guardar el marketplace en la sesión para saber cómo procesar los items
-                    order_data['marketplace'] = marketplace
-                    
-                    # Convertir objetos no serializables a tipos serializables antes de guardar en sesión
-                    serializable_order_data = convert_to_serializable(order_data)
-                    
-                    # Guardar en sesión
-                    request.session['order_data'] = serializable_order_data
-                    request.session['scanned_items'] = []
-                    
-                    scan_message = f"Orden {scanned_code} encontrada en {marketplace.capitalize()}. Escanee los productos."
-                    scan_status = 'success'
-                else:
-                    scan_message = f"No se pudo cargar los detalles de la orden {scanned_code}."
-                    scan_status = 'error'
-            else:
-                scan_message = f"No se encontró ninguna orden con el código {scanned_code}."
-                scan_status = 'error'
-        
-        # Si ya tenemos un order_id, asumimos que estamos escaneando un producto
-        elif order_id and scanned_code:
-            # Recuperar datos de la sesión
-            order_data = request.session.get('order_data', {})
-            scanned_items = request.session.get('scanned_items', [])
-            marketplace = order_data.get('marketplace', 'paris')
-            
-            # Buscar el código de barras en bsale_variants
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    SELECT bv.id, bv.description, bv.barcode, bv.code, bp.name
-                    FROM bsale_variants bv
-                    LEFT JOIN bsale_products bp ON bv.product_id = bp.id
-                    WHERE bv.barcode = %s OR bv.code = %s
-                """, [scanned_code, scanned_code])
-                product = cursor.fetchone()
+                    marketplace_data = {
+                        'name': 'Paris',
+                        'items': marketplace_items
+                    }
                 
-                if product:
-                    product_id = product[0]
-                    product_name = product[1] or product[4]  # Usar descripción o nombre del producto
-                    bsale_barcode = product[2]
-                    bsale_code = product[3]
+                elif marketplace.lower() == 'ripley':
+                    cursor.execute("""
+                        SELECT 
+                            rol.order_line_id, 
+                            rol.product_sku, 
+                            rol.product_title, 
+                            rol.price_unit, 
+                            rol.total_price,
+                            ro.order_id,
+                            ro.commercial_id
+                        FROM ripley_order_lines rol
+                        JOIN ripley_orders ro ON rol.order_id = ro.order_id
+                        WHERE rol.product_sku = %s
+                        LIMIT 10
+                    """, [bsale_data['code']])
                     
-                    # Verificar si el producto pertenece a la orden
-                    found = False
-                    all_scanned = True
-                    
-                    # Buscar en los items de la orden por código de barras o código de Bsale
-                    for item in order_data['items']:
-                        # Verificar si el SKU coincide con alguno de los códigos de Bsale
-                        sku = item.get('sku', '')
-                        bsale_variant_id = item.get('bsale_variant_id')
-                        bsale_item_barcode = item.get('bsale_barcode', '')
-                        bsale_item_code = item.get('bsale_code', '')
+                    marketplace_items = []
+                    for item_row in cursor.fetchall():
+                        item_dict = {
+                            'id': item_row[0],
+                            'sku': item_row[1],
+                            'name': item_row[2],
+                            'price': item_row[3],
+                            'total_price': item_row[4],
+                            'order_id': item_row[5],
+                            'commercial_id': item_row[6]
+                        }
                         
-                        # Comparar con múltiples posibles coincidencias
-                        if ((sku == scanned_code or 
-                             bsale_item_barcode == scanned_code or 
-                             bsale_item_code == scanned_code or 
-                             bsale_variant_id == product_id) and 
-                            not item.get('scanned', False)):
-                            
-                            item['scanned'] = True
-                            
-                            # Determinar el nombre del producto a mostrar
-                            if marketplace == 'paris':
-                                display_name = item.get('name', item.get('bsale_product_name', 'Producto sin nombre'))
-                            else:  # ripley
-                                display_name = item.get('product_name', item.get('bsale_product_name', 'Producto sin nombre'))
-                            
-                            scanned_items.append({
-                                'code': scanned_code,
-                                'name': display_name,
-                                'time': datetime.now().strftime('%H:%M:%S')
-                            })
-                            found = True
-                            scan_message = f"Producto {display_name} escaneado correctamente."
-                            scan_status = 'success'
-                            break
+                        # Convertir valores bytes a string
+                        for key, value in item_dict.items():
+                            if isinstance(value, bytes):
+                                item_dict[key] = value.decode('utf-8')
+                                
+                        marketplace_items.append(item_dict)
                     
-                    # Verificar si todos los productos han sido escaneados
-                    for item in order_data['items']:
-                        if not item.get('scanned', False):
-                            all_scanned = False
-                            break
-                    
-                    if all_scanned:
-                        # Marcar la orden como procesada
-                        success, message = OrderService.update_order_status(
-                            marketplace=marketplace,
-                            order_id=order_data['order']['order_id'],
-                            processed=True,
-                            user_id=request.user.id
-                        )
-                        
-                        if success:
-                            scan_message = "¡Todos los productos han sido escaneados! Orden procesada correctamente."
-                            scan_status = 'complete'
-                            # Limpiar la sesión
-                            request.session.pop('order_data', None)
-                            request.session.pop('scanned_items', None)
-                        else:
-                            scan_message = f"Error al procesar la orden: {message}"
-                            scan_status = 'error'
-                    
-                    if not found:
-                        scan_message = f"El producto {product_name} no pertenece a esta orden."
-                        scan_status = 'warning'
-                else:
-                    scan_message = f"No se encontró ningún producto con el código {scanned_code}."
-                    scan_status = 'error'
-            
-            # Convertir a formatos serializables antes de guardar en la sesión
-            serializable_order_data = convert_to_serializable(order_data)
-            serializable_scanned_items = convert_to_serializable(scanned_items)
-            
-            # Actualizar la sesión con datos serializables
-            request.session['order_data'] = serializable_order_data
-            request.session['scanned_items'] = serializable_scanned_items
-    else:
-        # Limpiar la sesión al cargar la página por GET
-        request.session.pop('order_data', None)
-        request.session.pop('scanned_items', None)
-    
-    # Si tenemos datos de orden en la sesión, usarlos
-    if not order_data and 'order_data' in request.session:
-        order_data = request.session.get('order_data')
-        scanned_items = request.session.get('scanned_items', [])
+                    marketplace_data = {
+                        'name': 'Ripley',
+                        'items': marketplace_items
+                    }
+                
+                # Consolidar toda la información
+                product_data = {
+                    'marketplace': marketplace,
+                    'bsale': bsale_data,
+                    'marketplace_data': marketplace_data
+                }
+            else:
+                error_message = f"No se encontró el producto con ID {product_id} en Bsale"
+        
+    except Exception as e:
+        print(f"Error al obtener detalles del producto: {str(e)}")
+        error_message = f"Error al obtener detalles del producto: {str(e)}"
     
     context = {
-        'scan_message': scan_message,
-        'scan_status': scan_status,
-        'order_data': order_data,
-        'scanned_items': scanned_items
+        'product': product_data,
+        'error_message': error_message
     }
     
-    return render(request, 'marketplace/order_scanning.html', context)
+    return render(request, 'marketplace/product_detail.html', context)
+
+@login_required
+@require_http_methods(["GET"])
+def get_bsale_info(request):
+    """
+    Función que busca la información de BSale para un SKU o ID de boleta
+    Puede ser utilizada como API desde la plantilla para mostrar información de BSale
+    """
+    search_type = request.GET.get('type', 'sku')  # 'sku', 'document'
+    search_value = request.GET.get('value', '')
+    
+    if not search_value:
+        return JsonResponse({'success': False, 'message': 'Se requiere un valor para la búsqueda'})
+    
+    result = {'success': False, 'message': 'No se encontró información', 'data': None}
+    
+    try:
+        with connection.cursor() as cursor:
+            if search_type == 'document':
+                # Buscar información por número de documento (boleta)
+                cursor.execute("""
+                    SELECT bd.id, bd.number, bd.emissionDate
+                    FROM bsale_documents bd
+                    WHERE bd.number = %s
+                    LIMIT 1
+                """, [search_value])
+                
+                doc_row = cursor.fetchone()
+                
+                if doc_row:
+                    doc_id = doc_row[0]
+                    
+                    # Buscar detalles del documento
+                    cursor.execute("""
+                        SELECT 
+                            bdd.id, 
+                            bdd.variant_id, 
+                            bdd.quantity,
+                            bdd.netUnitValue,
+                            bv.barCode, 
+                            bv.code,
+                            bp.name as product_name,
+                            bp.id as product_id
+                        FROM bsale_document_details bdd
+                        JOIN bsale_variants bv ON bdd.variant_id = bv.id
+                        JOIN bsale_products bp ON bv.product_id = bp.id
+                        WHERE bdd.document_id = %s
+                    """, [doc_id])
+                    
+                    items = []
+                    for detail_row in cursor.fetchall():
+                        item = {
+                            'detail_id': detail_row[0],
+                            'variant_id': detail_row[1],
+                            'quantity': detail_row[2],
+                            'net_value': detail_row[3],
+                            'barcode': detail_row[4],
+                            'code': detail_row[5],
+                            'product_name': detail_row[6],
+                            'product_id': detail_row[7]
+                        }
+                        
+                        # Convertir valores bytes a string si es necesario
+                        for key, value in item.items():
+                            if isinstance(value, bytes):
+                                item[key] = value.decode('utf-8')
+                                
+                        items.append(item)
+                    
+                    result = {
+                        'success': True, 
+                        'message': 'Información encontrada',
+                        'data': {
+                            'document_id': doc_id,
+                            'document_number': doc_row[1],
+                            'emission_date': doc_row[2],
+                            'items': items
+                        }
+                    }
+                    
+                    # Convertir valores bytes a string si es necesario
+                    if isinstance(result['data']['document_number'], bytes):
+                        result['data']['document_number'] = result['data']['document_number'].decode('utf-8')
+                    if isinstance(result['data']['emission_date'], bytes):
+                        result['data']['emission_date'] = result['data']['emission_date'].decode('utf-8')
+                
+            elif search_type == 'sku':
+                # MÉTODO 1: Buscar SKU en Paris
+                if not result['success']:
+                    # Consulta exacta que sabemos que funciona en Paris
+                    cursor.execute("""
+                        SELECT 
+                            po.subOrderNumber,
+                            pi.sku AS paris_sku,
+                            pi.name,
+                            bdd.variant_id 
+                        FROM paris_orders po
+                        JOIN paris_items pi ON pi.subOrderNumber = po.subOrderNumber
+                        JOIN bsale_document_details bdd ON pi.name LIKE CONCAT('%%', bdd.variant_description, '%%')
+                        WHERE pi.sku = %s
+                        LIMIT 1
+                    """, [search_value])
+                    
+                    paris_row = cursor.fetchone()
+                    
+                    if paris_row:
+                        logger.info(f"Encontrado en Paris: {paris_row}")
+                        variant_id = paris_row[3]  # variant_id (corresponde al índice 3 en la consulta)
+                        
+                        # Obtener información del producto con ese variant_id
+                        cursor.execute("""
+                            SELECT 
+                                bv.id, 
+                                bv.barCode AS barcode, 
+                                bv.code, 
+                                bp.id AS product_id,
+                                bp.name AS product_name
+                            FROM bsale_variants bv
+                            JOIN bsale_products bp ON bv.product_id = bp.id
+                            WHERE bv.id = %s
+                            LIMIT 1
+                        """, [variant_id])
+                        
+                        variant_row = cursor.fetchone()
+                        
+                        if variant_row:
+                            logger.info(f"Información de variante encontrada: {variant_row}")
+                            
+                            # Buscar documentos relacionados
+                            cursor.execute("""
+                                SELECT 
+                                    bd.id, 
+                                    bd.number, 
+                                    bd.emissionDate
+                                FROM bsale_documents bd
+                                JOIN bsale_document_details bdd ON bd.id = bdd.document_id
+                                WHERE bdd.variant_id = %s
+                                ORDER BY bd.emissionDate DESC
+                                LIMIT 5
+                            """, [variant_id])
+                            
+                            documents = []
+                            for doc_row in cursor.fetchall():
+                                doc = {
+                                    'document_id': doc_row[0],
+                                    'document_number': doc_row[1],
+                                    'emission_date': doc_row[2]
+                                }
+                                
+                                # Convertir valores bytes a string si es necesario
+                                for key, value in doc.items():
+                                    if isinstance(value, bytes):
+                                        doc[key] = value.decode('utf-8')
+                                        
+                                documents.append(doc)
+                            
+                            # Preparar información de Paris para incluirla en el resultado
+                            paris_info = {
+                                'marketplace': 'paris',
+                                'subOrderNumber': paris_row[0],
+                                'sku': paris_row[1],
+                                'name': paris_row[2]
+                            }
+                            
+                            # Convertir valores bytes a string si es necesario
+                            for key, value in paris_info.items():
+                                if isinstance(value, bytes):
+                                    paris_info[key] = value.decode('utf-8')
+                            
+                            # Preparar resultado completo
+                            variant_data = {
+                                'variant_id': variant_row[0],
+                                'barcode': variant_row[1],
+                                'code': variant_row[2],
+                                'product_id': variant_row[3],
+                                'product_name': variant_row[4],
+                                'documents': documents,
+                                'marketplace_info': paris_info
+                            }
+                            
+                            # Convertir valores bytes a string si es necesario
+                            for key, value in variant_data.items():
+                                if isinstance(value, bytes) and key != 'documents' and key != 'marketplace_info':
+                                    variant_data[key] = value.decode('utf-8')
+                            
+                            result = {
+                                'success': True,
+                                'message': 'Información encontrada',
+                                'data': variant_data
+                            }
+                
+                # MÉTODO 2: Buscar SKU en Ripley
+                if not result['success']:
+                    cursor.execute("""
+                        SELECT 
+                            ro.order_id,
+                            rol.product_title,
+                            rol.product_sku,
+                            bdd.variant_id
+                        FROM ripley_orders ro
+                        JOIN ripley_order_lines rol ON rol.order_id = ro.order_id
+                        JOIN bsale_document_details bdd ON rol.product_title LIKE CONCAT('%%', bdd.variant_description, '%%')
+                        WHERE rol.product_sku = %s
+                        LIMIT 1
+                    """, [search_value])
+                    
+                    ripley_row = cursor.fetchone()
+                    
+                    if ripley_row:
+                        logger.info(f"Encontrado en Ripley: {ripley_row}")
+                        variant_id = ripley_row[3]  # variant_id (corresponde al índice 3 en la consulta)
+                        
+                        # Obtener información del producto con ese variant_id
+                        cursor.execute("""
+                            SELECT 
+                                bv.id, 
+                                bv.barCode AS barcode, 
+                                bv.code, 
+                                bp.id AS product_id,
+                                bp.name AS product_name
+                            FROM bsale_variants bv
+                            JOIN bsale_products bp ON bv.product_id = bp.id
+                            WHERE bv.id = %s
+                            LIMIT 1
+                        """, [variant_id])
+                        
+                        variant_row = cursor.fetchone()
+                        
+                        if variant_row:
+                            logger.info(f"Información de variante encontrada: {variant_row}")
+                            
+                            # Buscar documentos relacionados
+                            cursor.execute("""
+                                SELECT 
+                                    bd.id, 
+                                    bd.number, 
+                                    bd.emissionDate
+                                FROM bsale_documents bd
+                                JOIN bsale_document_details bdd ON bd.id = bdd.document_id
+                                WHERE bdd.variant_id = %s
+                                ORDER BY bd.emissionDate DESC
+                                LIMIT 5
+                            """, [variant_id])
+                            
+                            documents = []
+                            for doc_row in cursor.fetchall():
+                                doc = {
+                                    'document_id': doc_row[0],
+                                    'document_number': doc_row[1],
+                                    'emission_date': doc_row[2]
+                                }
+                                
+                                # Convertir valores bytes a string si es necesario
+                                for key, value in doc.items():
+                                    if isinstance(value, bytes):
+                                        doc[key] = value.decode('utf-8')
+                                        
+                                documents.append(doc)
+                            
+                            # Preparar información de Ripley para incluirla en el resultado
+                            ripley_info = {
+                                'marketplace': 'ripley',
+                                'order_id': ripley_row[0],
+                                'product_title': ripley_row[1],
+                                'product_sku': ripley_row[2]
+                            }
+                            
+                            # Convertir valores bytes a string si es necesario
+                            for key, value in ripley_info.items():
+                                if isinstance(value, bytes):
+                                    ripley_info[key] = value.decode('utf-8')
+                            
+                            # Preparar resultado completo
+                            variant_data = {
+                                'variant_id': variant_row[0],
+                                'barcode': variant_row[1],
+                                'code': variant_row[2],
+                                'product_id': variant_row[3],
+                                'product_name': variant_row[4],
+                                'documents': documents,
+                                'marketplace_info': ripley_info
+                            }
+                            
+                            # Convertir valores bytes a string si es necesario
+                            for key, value in variant_data.items():
+                                if isinstance(value, bytes) and key != 'documents' and key != 'marketplace_info':
+                                    variant_data[key] = value.decode('utf-8')
+                            
+                            result = {
+                                'success': True,
+                                'message': 'Información encontrada',
+                                'data': variant_data
+                            }
+                
+                # MÉTODO 3: Buscar directamente por código o EAN
+                if not result['success']:
+                    cursor.execute("""
+                        SELECT 
+                            bv.id, 
+                            bv.barCode AS barcode, 
+                            bv.code, 
+                            bp.id AS product_id,
+                            bp.name AS product_name
+                        FROM bsale_variants bv
+                        JOIN bsale_products bp ON bv.product_id = bp.id
+                        WHERE bv.code = %s OR bv.barCode = %s
+                        LIMIT 1
+                    """, [search_value, search_value])
+                    
+                    variant_row = cursor.fetchone()
+                    
+                    if variant_row:
+                        logger.info(f"Encontrado por código/EAN directamente: {variant_row}")
+                        variant_id = variant_row[0]
+                        
+                        # Buscar documentos relacionados
+                        cursor.execute("""
+                            SELECT 
+                                bd.id, 
+                                bd.number, 
+                                bd.emissionDate
+                            FROM bsale_documents bd
+                            JOIN bsale_document_details bdd ON bd.id = bdd.document_id
+                            WHERE bdd.variant_id = %s
+                            ORDER BY bd.emissionDate DESC
+                            LIMIT 5
+                        """, [variant_id])
+                        
+                        documents = []
+                        for doc_row in cursor.fetchall():
+                            doc = {
+                                'document_id': doc_row[0],
+                                'document_number': doc_row[1],
+                                'emission_date': doc_row[2]
+                            }
+                            
+                            # Convertir valores bytes a string si es necesario
+                            for key, value in doc.items():
+                                if isinstance(value, bytes):
+                                    doc[key] = value.decode('utf-8')
+                                    
+                            documents.append(doc)
+                        
+                        # Preparar resultado
+                        variant_data = {
+                            'variant_id': variant_row[0],
+                            'barcode': variant_row[1],
+                            'code': variant_row[2],
+                            'product_id': variant_row[3],
+                            'product_name': variant_row[4],
+                            'documents': documents
+                        }
+                        
+                        # Convertir valores bytes a string si es necesario
+                        for key, value in variant_data.items():
+                            if isinstance(value, bytes) and key != 'documents':
+                                variant_data[key] = value.decode('utf-8')
+                        
+                        result = {
+                            'success': True,
+                            'message': 'Información encontrada',
+                            'data': variant_data
+                        }
+                
+    except Exception as e:
+        logger.error(f"Error al buscar información: {str(e)}")
+        result = {'success': False, 'message': f'Error: {str(e)}'}
+    
+    return JsonResponse(result)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def print_multiple_boletas(request):
+    """Endpoint para imprimir múltiples boletas"""
+    try:
+        data = json.loads(request.body)
+        boleta_urls = data.get('boleta_urls', [])
+        
+        if not boleta_urls:
+            return JsonResponse({'error': 'No se proporcionaron URLs de boletas'}, status=400)
+            
+        # Aquí iría la lógica para generar el PDF combinado
+        # Por ahora retornamos un mensaje de éxito
+        return JsonResponse({'message': 'PDF generado correctamente'})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

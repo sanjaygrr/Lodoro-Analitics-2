@@ -1,0 +1,119 @@
+{% comment %}
+  Plantilla parcial para mostrar información detallada de productos durante el proceso de escaneo
+  Esta plantilla se incluirá en order_scanning_new.html
+{% endcomment %}
+
+<div class="modal fade" id="productInfoModal" tabindex="-1" aria-labelledby="productInfoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="productInfoModalLabel">Información del Producto</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-header bg-info text-white">
+                <h6 class="mb-0">Información del Marketplace</h6>
+              </div>
+              <div class="card-body">
+                <table class="table table-sm">
+                  <tr>
+                    <th>SKU:</th>
+                    <td id="modal-sku"></td>
+                  </tr>
+                  <tr>
+                    <th>Nombre:</th>
+                    <td id="modal-name"></td>
+                  </tr>
+                  <tr>
+                    <th>Cantidad:</th>
+                    <td id="modal-quantity"></td>
+                  </tr>
+                  <tr>
+                    <th>Precio:</th>
+                    <td id="modal-price"></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0">Información de BSale</h6>
+              </div>
+              <div class="card-body">
+                <table class="table table-sm">
+                  <tr>
+                    <th>ID Variante:</th>
+                    <td id="modal-bsale-id"></td>
+                  </tr>
+                  <tr>
+                    <th>Código (SKU):</th>
+                    <td id="modal-bsale-code"></td>
+                  </tr>
+                  <tr>
+                    <th>Código EAN:</th>
+                    <td id="modal-bsale-barcode"></td>
+                  </tr>
+                  <tr>
+                    <th>Producto:</th>
+                    <td id="modal-bsale-product"></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <a href="#" id="modal-product-detail-link" class="btn btn-primary">Ver Detalle Completo</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Función para mostrar la información del producto en el modal
+function showProductInfo(index) {
+  const items = {{ order_data.items|safe }};
+  if (items && items[index]) {
+    const item = items[index];
+    const marketplace = '{{ order_data.marketplace }}';
+    
+    // Información del marketplace
+    document.getElementById('modal-sku').textContent = item.sku || 'No disponible';
+    
+    if (marketplace === 'paris') {
+      document.getElementById('modal-name').textContent = item.name || 'No disponible';
+      document.getElementById('modal-price').textContent = '$' + (item.priceAfterDiscounts || '0');
+    } else {
+      document.getElementById('modal-name').textContent = item.product_name || 'No disponible';
+      document.getElementById('modal-price').textContent = '$' + (item.total_price || '0');
+    }
+    
+    document.getElementById('modal-quantity').textContent = item.quantity || '1';
+    
+    // Información de BSale
+    document.getElementById('modal-bsale-id').textContent = item.bsale_variant_id || 'No vinculado';
+    document.getElementById('modal-bsale-code').textContent = item.bsale_code || item.codigo_bsale || 'No disponible';
+    document.getElementById('modal-bsale-barcode').textContent = item.bsale_barcode || item.codigo_barras || 'No disponible';
+    document.getElementById('modal-bsale-product').textContent = item.bsale_product_name || 'No disponible';
+    
+    // Actualizar enlace al detalle
+    if (item.bsale_variant_id) {
+      document.getElementById('modal-product-detail-link').href = `/marketplace/product/${marketplace}/${item.bsale_variant_id}/`;
+      document.getElementById('modal-product-detail-link').classList.remove('disabled');
+    } else {
+      document.getElementById('modal-product-detail-link').href = '#';
+      document.getElementById('modal-product-detail-link').classList.add('disabled');
+    }
+    
+    // Mostrar el modal
+    new bootstrap.Modal(document.getElementById('productInfoModal')).show();
+  }
+}
+</script> 

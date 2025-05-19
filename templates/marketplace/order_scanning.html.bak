@@ -139,7 +139,6 @@
                                         </li>
                                         {% endif %}
                                         {% endif %}
-                                        {% endif %}
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <span>Productos (sin IVA):</span>
                                             <span class="badge bg-secondary">${{ order_data.order.total_sin_iva|default:order_data.order.products_total|floatformat:0 }}</span>

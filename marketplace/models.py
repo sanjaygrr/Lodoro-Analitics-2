@@ -41,85 +41,27 @@ class FalabellaProduct(models.Model):
     def __str__(self):
         return f"{self.sku} - {self.name}"
 
-# Modelos para Paris
-class ParisOrder(models.Model):
-    # Campos actualizados según la estructura real de la tabla
-    id = models.CharField(primary_key=True, max_length=36)
-    origin = models.CharField(max_length=15, null=True, blank=True)
-    originOrderNumber = models.CharField(max_length=15, null=True, blank=True)
-    subOrderNumber = models.CharField(max_length=15, unique=True)
-    originInvoiceType = models.CharField(max_length=15, null=True, blank=True)
-    originOrderDate = models.DateTimeField(null=True, blank=True)
-    createdAt = models.DateTimeField(null=True, blank=True)
-    customer_id = models.CharField(max_length=36, null=True, blank=True)
-    customer_name = models.CharField(max_length=50, null=True, blank=True)
-    customer_email = models.EmailField(max_length=50, null=True, blank=True)
-    customer_documentType = models.CharField(max_length=20, null=True, blank=True)
-    customer_documentNumber = models.CharField(max_length=20, null=True, blank=True)
-    billing_id = models.CharField(max_length=36, null=True, blank=True)
-    billing_firstName = models.CharField(max_length=50, null=True, blank=True)
-    billing_lastName = models.CharField(max_length=50, null=True, blank=True)
-    billing_address1 = models.CharField(max_length=100, null=True, blank=True)
-    billing_address2 = models.CharField(max_length=50, null=True, blank=True)
-    billing_address3 = models.CharField(max_length=50, null=True, blank=True)
-    billing_city = models.CharField(max_length=50, null=True, blank=True)
-    billing_stateCode = models.CharField(max_length=50, null=True, blank=True)
-    billing_countryCode = models.CharField(max_length=10, null=True, blank=True)
-    billing_phone = models.CharField(max_length=30, null=True, blank=True)
-    billing_communaCode = models.CharField(max_length=20, null=True, blank=True)
-    orden_impresa = models.BooleanField(default=False)
-    
-    # Campos virtuales para mantener compatibilidad con el código existente
-    @property
-    def order_id(self):
-        return self.originOrderNumber or self.subOrderNumber
-    
-    @property
-    def status(self):
-        # Determinar el estado basado en otros campos
-        # Por defecto, consideramos NUEVA si no está impresa
-        if hasattr(self, 'orden_procesada') and getattr(self, 'orden_procesada', False):
-            return 'PROCESADA'
-        return 'NUEVA'
-    
-    @property
-    def processed(self):
-        # Si existe un campo orden_procesada lo usamos, de lo contrario inferimos
-        return getattr(self, 'orden_procesada', False)
-    
-    @property
-    def printed(self):
-        return self.orden_impresa
-    
-    @property
-    def total_amount(self):
-        # Calcular el total a partir de los items
-        from django.db.models import Sum, F
-        items = ParisItem.objects.filter(orderId=self.id)
-        total = items.aggregate(total=Sum('priceAfterDiscounts'))
-        return total['total'] or 0
-    
-    @property
-    def created_at(self):
-        return self.createdAt
-    
-    @property
-    def updated_at(self):
-        # No hay campo de updated_at, usamos createdAt
-        return self.createdAt
-    
-    @property
-    def customer_phone(self):
-        return self.billing_phone
+class Order(models.Model):
+    """Modelo base para órdenes"""
+    order_id = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_processed = models.BooleanField(default=False)
+    is_printed = models.BooleanField(default=False)
     
     class Meta:
-        db_table = 'paris_orders'
-        verbose_name = 'Orden Paris'
-        verbose_name_plural = 'Órdenes Paris'
-        managed = False
-        
+        abstract = True
+
+class ParisOrder(Order):
+    """Modelo para órdenes de Paris"""
+    origin_order_number = models.CharField(max_length=100)
+    sub_order_number = models.CharField(max_length=100, null=True, blank=True)
+    customer_name = models.CharField(max_length=200)
+    customer_email = models.EmailField()
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    
     def __str__(self):
-        return f"Orden Paris #{self.order_id}"
+        return f"Paris Order {self.order_id}"
 
 class ParisItem(models.Model):
     id = models.CharField(primary_key=True, max_length=36)
@@ -233,77 +175,15 @@ class ParisDeliveryOption(models.Model):
     def __str__(self):
         return f"{self.order.order_id} - {self.delivery_type}"
 
-# Modelos para Ripley
-class RipleyOrder(models.Model):
-    # Campos actualizados según la estructura real de la tabla
-    order_id = models.CharField(primary_key=True, max_length=50)
-    commercial_id = models.CharField(max_length=50, null=True, blank=True)
-    created_date = models.DateTimeField(null=True, blank=True)
-    last_updated_date = models.DateTimeField(null=True, blank=True)
-    acceptance_decision_date = models.DateTimeField(null=True, blank=True)
-    customer_debited_date = models.DateTimeField(null=True, blank=True)
-    currency_iso_code = models.CharField(max_length=10, null=True, blank=True)
-    can_cancel = models.BooleanField(null=True, blank=True)
-    has_customer_message = models.BooleanField(null=True, blank=True)
-    has_incident = models.BooleanField(null=True, blank=True)
-    customer_id = models.CharField(max_length=50, null=True, blank=True)
-    leadtime_to_ship = models.IntegerField(null=True, blank=True)
-    order_state = models.CharField(max_length=20, null=True, blank=True)
-    order_state_reason_code = models.CharField(max_length=50, null=True, blank=True)
-    order_state_reason_label = models.CharField(max_length=100, null=True, blank=True)
-    payment_type = models.CharField(max_length=50, null=True, blank=True)
-    payment_workflow = models.CharField(max_length=50, null=True, blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    shipping_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    shipping_type_code = models.CharField(max_length=50, null=True, blank=True)
-    shipping_type_label = models.CharField(max_length=255, null=True, blank=True)
-    shipping_zone_code = models.CharField(max_length=50, null=True, blank=True)
-    shipping_zone_label = models.CharField(max_length=255, null=True, blank=True)
-    total_commission = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    orden_impresa = models.BooleanField(default=False)
-    orden_procesada = models.BooleanField(default=False)
+class RipleyOrder(Order):
+    """Modelo para órdenes de Ripley"""
+    commercial_id = models.CharField(max_length=100)
+    customer_id = models.CharField(max_length=100)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    shipping_price = models.DecimalField(max_digits=10, decimal_places=2)
     
-    # Propiedades virtuales para mantener compatibilidad
-    @property
-    def status(self):
-        # Determinar el estado basado en order_state o orden_procesada
-        if self.orden_procesada:
-            return 'PROCESADA'
-        elif self.order_state == 'SHIPPED':
-            return 'ENVIADA'
-        elif self.order_state == 'CANCELED':
-            return 'CANCELADA'
-        return 'NUEVA'
-    
-    @property
-    def total_amount(self):
-        return self.total_price or 0
-    
-    @property
-    def created_at(self):
-        return self.created_date
-    
-    @property
-    def updated_at(self):
-        return self.last_updated_date
-    
-    @property
-    def processed(self):
-        return self.orden_procesada
-    
-    @property
-    def printed(self):
-        return self.orden_impresa
-    
-    class Meta:
-        db_table = 'ripley_orders'
-        verbose_name = 'Orden Ripley'
-        verbose_name_plural = 'Órdenes Ripley'
-        managed = False
-        
     def __str__(self):
-        return f"Orden Ripley #{self.order_id}"
+        return f"Ripley Order {self.order_id}"
 
 class RipleyCustomer(models.Model):
     id = models.AutoField(primary_key=True)

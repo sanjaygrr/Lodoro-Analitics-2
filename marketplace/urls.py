@@ -44,4 +44,6 @@ urlpatterns = [
     path('paris/exportar-excel/', views.exportar_paris_orders_excel, name='exportar_paris_orders_excel'),
     path('ripley/sales-analysis/', views.ripley_sales_analysis, name='ripley_sales_analysis'),
     path('ripley/exportar-excel/', views.exportar_ripley_orders_excel, name='exportar_ripley_orders_excel'),
+    path('mercadolibre/sales-analysis/', views.mercadolibre_sales_analysis, name='mercadolibre_sales_analysis'),
+    path('mercadolibre/exportar-excel/', views.exportar_mercadolibre_orders_excel, name='exportar_mercadolibre_orders_excel'),
 ] 

@@ -379,11 +379,14 @@ def mercadolibre_orders(request):
             WHERE 1=1
                 AND (%s IS NULL OR date_created >= %s)
                 AND (%s IS NULL OR date_created <= %s)
+                AND (%s IS NULL OR seller_id LIKE %s)
         """, [
             date_from if date_from else None,
             date_from if date_from else None,
             date_to if date_to else None,
-            date_to if date_to else None
+            date_to if date_to else None,
+            search_query if search_query else None,
+            f'%{search_query}%' if search_query else None
         ])
         stats = dict(zip(['nuevas', 'por_procesar', 'por_despachar', 'despachadas'], cursor.fetchone()))
 
@@ -2239,3 +2242,152 @@ def exportar_ripley_orders_excel(request):
     response = HttpResponse(tmp.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="ripley_orders_{year or 'todos'}.xlsx"'
     return response
+
+@login_required
+def mercadolibre_sales_analysis(request):
+    import decimal
+    year = request.GET.get('year', '')
+    page = int(request.GET.get('page', 1))
+    per_page = 50
+    offset = (page - 1) * per_page
+    date_from = f"{year}-01-01" if year else None
+    date_to = f"{year}-12-31" if year else None
+    with connection.cursor() as cursor:
+        # Si tienes procedimientos para Mercado Libre, descomenta y usa:
+        try:
+            cursor.execute('CALL get_mercadolibre_top_products()')
+            top_products = cursor.fetchall()
+        except Exception:
+            top_products = []
+        try:
+            cursor.execute('CALL get_mercadolibre_monthly_top_products()')
+            monthly_top_products = cursor.fetchall()
+        except Exception:
+            monthly_top_products = []
+        try:
+            cursor.execute('CALL get_mercadolibre_monthly_status_stats()')
+            monthly_status_stats = cursor.fetchall()
+        except Exception:
+            monthly_status_stats = []
+        try:
+            cursor.execute('CALL get_mercadolibre_monthly_sales()')
+            monthly_sales = cursor.fetchall()
+        except Exception:
+            monthly_sales = []
+        # Años disponibles
+        years = sorted(list(set([str(sale[0]) for sale in monthly_sales if sale and sale[0]])), reverse=True)
+        # Lista de órdenes desde el procedimiento almacenado
+        cursor.execute(
+            "CALL get_mercadolibre_orders(%s, %s, %s, %s, %s, %s, %s, %s, @p_total_orders, @p_total_amount)",
+            [None, None, None, date_from, date_to, None, per_page, offset]
+        )
+        columns = [col[0] for col in cursor.description]
+        mercadolibre_orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.execute("SELECT @p_total_orders, @p_total_amount")
+        total_orders, total_amount = cursor.fetchone()
+    total_pages = (total_orders + per_page - 1) // per_page if total_orders else 1
+    has_previous = page > 1
+    has_next = page < total_pages
+    previous_page = page - 1
+    next_page = page + 1
+    page_range = range(max(1, page - 2), min(total_pages + 1, page + 3))
+    def decimal_to_float(obj):
+        if isinstance(obj, list):
+            return [decimal_to_float(i) for i in obj]
+        if isinstance(obj, tuple):
+            return tuple(decimal_to_float(i) for i in obj)
+        if isinstance(obj, dict):
+            return {k: decimal_to_float(v) for k, v in obj.items()}
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return obj
+    context = {
+        'top_products': top_products,
+        'monthly_top_products': monthly_top_products,
+        'monthly_status_stats': monthly_status_stats,
+        'monthly_sales': monthly_sales,
+        'mercadolibre_orders': mercadolibre_orders,
+        'total_orders': total_orders,
+        'total_amount': total_amount,
+        'years': years,
+        'year_selected': year,
+        'page': page,
+        'total_pages': total_pages,
+        'has_previous': has_previous,
+        'has_next': has_next,
+        'previous_page': previous_page,
+        'next_page': next_page,
+        'page_range': page_range,
+        'per_page': per_page,
+        'monthly_sales_json': json.dumps(decimal_to_float(monthly_sales)),
+        'monthly_status_stats_json': json.dumps(decimal_to_float(monthly_status_stats)),
+    }
+    return render(request, 'marketplace/mercadolibre_sales_analysis.html', context)
+
+@login_required
+def exportar_mercadolibre_orders_excel(request):
+    """Vista para exportar las órdenes de Mercado Libre a Excel"""
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    search_query = request.GET.get('search', '')
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT 
+                seller_id,
+                id,
+                date_created,
+                total_amount,
+                status
+            FROM mercadolibre_orders
+            WHERE 1=1
+                AND (%s IS NULL OR date_created >= %s)
+                AND (%s IS NULL OR date_created <= %s)
+                AND (%s IS NULL OR seller_id LIKE %s)
+            ORDER BY date_created DESC
+        """, [
+            date_from if date_from else None,
+            date_from if date_from else None,
+            date_to if date_to else None,
+            date_to if date_to else None,
+            search_query if search_query else None,
+            f'%{search_query}%' if search_query else None
+        ])
+        
+        columns = [col[0] for col in cursor.description]
+        orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    # Crear un nuevo libro de Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Órdenes Mercado Libre"
+
+    # Agregar encabezados
+    headers = ['Vendedor', 'ID Orden', 'Fecha', 'Monto Total', 'Estado']
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
+
+    # Agregar datos
+    for row, order in enumerate(orders, 2):
+        ws.cell(row=row, column=1, value=order['seller_id'])
+        ws.cell(row=row, column=2, value=order['id'])
+        ws.cell(row=row, column=3, value=order['date_created'])
+        ws.cell(row=row, column=4, value=float(order['total_amount']))
+        ws.cell(row=row, column=5, value=order['status'])
+
+    # Ajustar ancho de columnas
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 15
+
+    # Crear respuesta HTTP con el archivo Excel
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=mercadolibre_orders.xlsx'
+    
+    wb.save(response)
+    return response
+
+def safe_float(value, default=0.0):
+    try:
+        return float(value) if value is not None else default
+    except (ValueError, TypeError):
+        return default

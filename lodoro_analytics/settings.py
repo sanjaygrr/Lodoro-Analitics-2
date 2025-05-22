@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-^o7l!k+13c%ak6vwvno@#6&8^u(_6on@2r4x-0e72)iygt040!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = True  # Temporalmente en True para ver errores
 
 # Heroku configuration
 ALLOWED_HOSTS = ['lodoro-analiticis-337f9d06fd63.herokuapp.com', 'localhost', '127.0.0.1']
@@ -39,7 +39,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Para archivos estáticos en Heroku
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -82,10 +82,11 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT', '3306'),
         'OPTIONS': {
             'charset': 'utf8mb4',
-            'ssl': {
-                'ssl-mode': 'preferred'
-            }
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'connect_timeout': 60,
         },
+        'CONN_MAX_AGE': 60,
+        'ATOMIC_REQUESTS': True,
     }
 }
 

@@ -149,20 +149,6 @@ def ripley_orders(request):
     per_page = 50
     offset = (page - 1) * per_page
 
-    # Convertir los filtros a los valores correctos
-    def parse_bool_filter(val):
-        if val is None:
-            return None
-        val = str(val).strip().lower()
-        if val in ('1', 'si', 'true', 'yes'):
-            return 1
-        if val in ('0', 'no', 'false'):
-            return 0
-        return None
-
-    processed_value = parse_bool_filter(processed_filter)
-    printed_value = parse_bool_filter(printed_filter)
-
     with connection.cursor() as cursor:
         # Obtener estadísticas de órdenes
         cursor.execute("""
@@ -196,8 +182,8 @@ def ripley_orders(request):
             )
         """, [
             status_filter or None,
-            processed_value,
-            printed_value,
+            processed_filter or None,
+            printed_filter or None,
             date_from,
             date_to,
             search_query or None,
@@ -208,37 +194,7 @@ def ripley_orders(request):
         # Obtener resultados
         columns = [col[0] for col in cursor.description]
         orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-        # Forzar los campos a enteros para asegurar el filtrado correcto
-        for order in orders:
-            try:
-                order['orden_impresa'] = int(order.get('orden_impresa', 0) or 0)
-            except Exception:
-                order['orden_impresa'] = 0
-            try:
-                order['orden_procesada'] = int(order.get('orden_procesada', 0) or 0)
-            except Exception:
-                order['orden_procesada'] = 0
-
-        # Filtros adicionales en Python
-        con_boleta = request.GET.get('con_boleta')  # 'SI', 'NO' o None
-        if con_boleta == 'SI':
-            orders = [order for order in orders if order.get('numero_boleta') not in (None, '', 0)]
-        elif con_boleta == 'NO':
-            orders = [order for order in orders if not order.get('numero_boleta') or order.get('numero_boleta') in ('', 0)]
-
-        impreso = request.GET.get('impreso')  # 'SI', 'NO' o None
-        if impreso == 'SI':
-            orders = [order for order in orders if order['orden_impresa'] == 1]
-        elif impreso == 'NO':
-            orders = [order for order in orders if order['orden_impresa'] == 0]
-
-        procesado = request.GET.get('procesado')  # 'SI', 'NO' o None
-        if procesado == 'SI':
-            orders = [order for order in orders if order['orden_procesada'] == 1]
-        elif procesado == 'NO':
-            orders = [order for order in orders if order['orden_procesada'] == 0]
-
+        
         # Obtener totales
         cursor.execute("SELECT @total_orders, @total_amount")
         total_orders, total_amount = cursor.fetchone()

@@ -5,6 +5,9 @@
 
 {% block content %}
 <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Órdenes Paris</h2>
+    </div>
     <div class="row mb-3">
         <div class="col-12">
             <div class="card">
@@ -115,6 +118,12 @@
                         </button>
                         <button type="button" class="btn btn-success" id="printPackingBtn" disabled>
                             <i class="fas fa-box"></i> Imprimir Packing
+                        </button>
+                        <button type="button" class="btn btn-warning" id="markAsPrintedBtn" disabled>
+                            <i class="fas fa-check"></i> Marcar como Impresas
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="markBoletaAsPrintedBtn" disabled>
+                            <i class="fas fa-file-pdf"></i> Marcar Boleta como Impresa
                         </button>
                     </div>
                 </div>
@@ -262,6 +271,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const orderCheckboxes = document.querySelectorAll('.order-checkbox');
     const printPickingBtn = document.getElementById('printPickingBtn');
     const printPackingBtn = document.getElementById('printPackingBtn');
+    const markAsPrintedBtn = document.getElementById('markAsPrintedBtn');
+    const markBoletaAsPrintedBtn = document.getElementById('markBoletaAsPrintedBtn');
     const boletasModal = new bootstrap.Modal(document.getElementById('boletasModal'));
     const boletasFrame = document.getElementById('boletasFrame');
 
@@ -271,6 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const hasSelection = selectedOrders.length > 0;
         printPickingBtn.disabled = !hasSelection;
         printPackingBtn.disabled = !hasSelection;
+        markAsPrintedBtn.disabled = !hasSelection;
+        markBoletaAsPrintedBtn.disabled = !hasSelection;
     }
 
     // Manejar selección de todas las órdenes
@@ -316,46 +329,79 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Función para obtener las URLs de boletas seleccionadas
-    function getSelectedBoletaUrls() {
-        const checkboxes = document.querySelectorAll('.order-checkbox:checked');
-        const urls = [];
-        checkboxes.forEach(cb => {
-            const url = cb.getAttribute('data-boleta-url');
-            if (url) urls.push(url);
-        });
-        return urls;
-    }
-
-    // Imprimir boletas
-    document.getElementById('btn-print-boletas').addEventListener('click', function() {
-        const urls = getSelectedBoletaUrls().filter(url => url && url !== 'None');
-        if (urls.length === 0) {
-            alert('Selecciona al menos una orden con boleta.');
-            return;
+    // Marcar órdenes como impresas
+    markAsPrintedBtn.addEventListener('click', function() {
+        const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+            .map(checkbox => checkbox.closest('tr').querySelector('td:nth-child(2)').textContent.trim());
+        
+        if (selectedOrders.length > 0) {
+            fetch('/marketplace/mark-orders-printed/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({orders: selectedOrders})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error al marcar las órdenes como impresas');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al marcar las órdenes como impresas');
+            });
         }
-        // Abrir la pestaña antes del fetch para evitar bloqueos
-        const win = window.open('', '_blank');
-        fetch('/marketplace/unir-boletas/', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({boleta_urls: urls})
-        })
-        .then(res => res.blob())
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            win.location.href = url;
-        });
     });
 
-    // Habilitar/deshabilitar el botón según selección
-    const checkboxes = document.querySelectorAll('.order-checkbox');
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', function() {
-            const anyChecked = Array.from(checkboxes).some(c => c.checked);
-            document.getElementById('btn-print-boletas').disabled = !anyChecked;
-        });
+    // Marcar boletas como impresas
+    markBoletaAsPrintedBtn.addEventListener('click', function() {
+        const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+            .map(checkbox => checkbox.closest('tr').querySelector('td:nth-child(2)').textContent.trim());
+        
+        if (selectedOrders.length > 0) {
+            fetch('/marketplace/mark-boletas-printed/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({orders: selectedOrders})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error al marcar las boletas como impresas');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al marcar las boletas como impresas');
+            });
+        }
     });
+
+    // Función para obtener el token CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
 });
 </script>
 {% endblock %} 

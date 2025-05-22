@@ -641,6 +641,19 @@
             </div>
         </div>
         
+        <!-- Nueva Sección de Análisis -->
+        <div class="sidebar-item-container">
+            <a href="javascript:void(0)" class="sidebar-dropdown-toggle" data-target="analisis-dropdown">
+                <i class="fas fa-chart-line fa-fw me-2"></i> ANÁLISIS
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </a>
+            <div class="sidebar-dropdown-menu" id="analisis-dropdown">
+                <a href="{% url 'paris_sales_analysis' %}" class="{% if 'paris/sales-analysis' in request.path %}active{% endif %}">
+                    <i class="fas fa-chart-bar fa-fw me-2"></i> Ventas Paris
+                </a>
+            </div>
+        </div>
+        
         <!-- Sección Configuración -->
         <div class="sidebar-item-container">
             <a href="{% url 'settings' %}" class="{% if 'settings' in request.path %}active{% endif %}">

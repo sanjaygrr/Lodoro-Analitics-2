@@ -1,6 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection
@@ -14,6 +14,10 @@ import os
 from django.conf import settings
 import requests
 from PyPDF2 import PdfMerger
+from django.contrib import messages
+import openpyxl
+from openpyxl.utils import get_column_letter
+from tempfile import NamedTemporaryFile
 
 @login_required
 def paris_orders(request):
@@ -289,8 +293,24 @@ def falabella_orders(request):
         
         # Obtener resultados
         columns = [col[0] for col in cursor.description]
-        orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        
+        raw_orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        # Agrupar productos por orden
+        orders_dict = {}
+        for order in raw_orders:
+            orden_id = order.get('orden_falabella')
+            if orden_id not in orders_dict:
+                orders_dict[orden_id] = order.copy()
+                orders_dict[orden_id]['productos'] = []
+            # Agregar el producto a la lista
+            if order.get('producto'):
+                orders_dict[orden_id]['productos'].append(order.get('producto'))
+        # Convertir la lista de productos a string separado por |
+        orders = []
+        for orden in orders_dict.values():
+            orden['productos'] = ' | '.join(orden['productos']) if orden['productos'] else ''
+            orders.append(orden)
+
         # Obtener totales
         cursor.execute("SELECT @total_orders, @total_amount")
         total_orders, total_amount = cursor.fetchone()
@@ -1651,3 +1671,462 @@ def procesar_orden(request):
         print('Error al procesar la orden:', e)
         print(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=500) 
+
+@require_http_methods(["POST"])
+@login_required
+def mark_orders_printed(request):
+    try:
+        data = json.loads(request.body)
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return JsonResponse({'success': False, 'error': 'No se proporcionaron órdenes'})
+        
+        # Actualizar el estado de las órdenes en la base de datos
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE paris_orders 
+                SET orden_impresa = 1 
+                WHERE subOrderNumber IN %s
+            """, [tuple(orders)])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+@login_required
+def mark_boletas_printed(request):
+    try:
+        data = json.loads(request.body)
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return JsonResponse({'success': False, 'error': 'No se proporcionaron órdenes'})
+        
+        # Actualizar el estado de las boletas en la base de datos
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE paris_orders 
+                SET boleta_impresa = 1 
+                WHERE subOrderNumber IN %s
+            """, [tuple(orders)])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+@login_required
+def mark_ripley_orders_printed(request):
+    try:
+        data = json.loads(request.body)
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return JsonResponse({'success': False, 'error': 'No se proporcionaron órdenes'})
+        
+        # Actualizar el estado de las órdenes en la base de datos
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE ripley_orders 
+                SET orden_impresa = 1 
+                WHERE order_id IN %s
+            """, [tuple(orders)])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+@login_required
+def mark_ripley_boletas_printed(request):
+    try:
+        data = json.loads(request.body)
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return JsonResponse({'success': False, 'error': 'No se proporcionaron órdenes'})
+        
+        # Actualizar el estado de las boletas en la base de datos
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE ripley_orders 
+                SET boleta_impresa = 1 
+                WHERE order_id IN %s
+            """, [tuple(orders)])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+@login_required
+def mark_falabella_orders_printed(request):
+    try:
+        data = json.loads(request.body)
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return JsonResponse({'success': False, 'error': 'No se proporcionaron órdenes'})
+        
+        # Actualizar el estado de las órdenes en la base de datos
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE falabella_orders 
+                SET orden_impresa = 1 
+                WHERE order_number IN %s
+            """, [tuple(orders)])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+@login_required
+def mark_falabella_boletas_printed(request):
+    try:
+        data = json.loads(request.body)
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return JsonResponse({'success': False, 'error': 'No se proporcionaron órdenes'})
+        
+        # Actualizar el estado de las boletas en la base de datos
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE falabella_orders 
+                SET boleta_impresa = 1 
+                WHERE order_number IN %s
+            """, [tuple(orders)])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+@login_required
+def mark_mercadolibre_orders_printed(request):
+    try:
+        data = json.loads(request.body)
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return JsonResponse({'success': False, 'error': 'No se proporcionaron órdenes'})
+        
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE mercadolibre_orders 
+                SET orden_impresa = 1 
+                WHERE id IN %s
+            """, [tuple(orders)])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_http_methods(["POST"])
+@login_required
+def mark_mercadolibre_boletas_printed(request):
+    try:
+        data = json.loads(request.body)
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return JsonResponse({'success': False, 'error': 'No se proporcionaron órdenes'})
+        
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE mercadolibre_orders 
+                SET boleta_impresa = 1 
+                WHERE id IN %s
+            """, [tuple(orders)])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def paris_sales_analysis(request):
+    # Filtros
+    year = request.GET.get('year', '')
+    page = int(request.GET.get('page', 1))
+    per_page = 50
+    offset = (page - 1) * per_page
+    date_from = f"{year}-01-01" if year else None
+    date_to = f"{year}-12-31" if year else None
+    with connection.cursor() as cursor:
+        cursor.execute('CALL get_paris_top_products()')
+        top_products = cursor.fetchall()
+        cursor.execute('CALL get_paris_monthly_top_products()')
+        monthly_top_products = cursor.fetchall()
+        cursor.execute('CALL get_paris_monthly_status_stats()')
+        monthly_status_stats = cursor.fetchall()
+        cursor.execute('CALL get_paris_monthly_sales()')
+        monthly_sales = cursor.fetchall()
+        years = sorted(list(set([str(sale[0]) for sale in monthly_sales if sale[0]])), reverse=True)
+        cursor.execute(
+            "CALL get_paris_orders(%s, %s, %s, %s, %s, %s, %s, %s, @p_total_orders, @p_total_amount)",
+            [None, None, None, date_from, date_to, None, per_page, offset]
+        )
+        columns = [col[0] for col in cursor.description]
+        paris_orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.execute("SELECT @p_total_orders, @p_total_amount")
+        total_orders, total_amount = cursor.fetchone()
+    total_pages = (total_orders + per_page - 1) // per_page if total_orders else 1
+    has_previous = page > 1
+    has_next = page < total_pages
+    previous_page = page - 1
+    next_page = page + 1
+    page_range = range(max(1, page - 2), min(total_pages + 1, page + 3))
+    context = {
+        'top_products': top_products,
+        'monthly_top_products': monthly_top_products,
+        'monthly_status_stats': monthly_status_stats,
+        'monthly_sales': monthly_sales,
+        'paris_orders': paris_orders,
+        'total_orders': total_orders,
+        'total_amount': total_amount,
+        'years': years,
+        'year_selected': year,
+        'page': page,
+        'total_pages': total_pages,
+        'has_previous': has_previous,
+        'has_next': has_next,
+        'previous_page': previous_page,
+        'next_page': next_page,
+        'page_range': page_range,
+        'per_page': per_page,
+        'monthly_sales_json': json.dumps(monthly_sales),
+        'monthly_status_stats_json': json.dumps(monthly_status_stats),
+    }
+    return render(request, 'marketplace/paris_sales_analysis.html', context)
+
+@login_required
+def exportar_paris_orders_excel(request):
+    year = request.GET.get('year', '')
+    date_from = f"{year}-01-01" if year else None
+    date_to = f"{year}-12-31" if year else None
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL get_paris_orders(%s, %s, %s, %s, %s, %s, %s, %s, @p_total_orders, @p_total_amount)",
+            [None, None, None, date_from, date_to, None, 100000, 0]
+        )
+        columns = [col[0] for col in cursor.description]
+        orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Órdenes Paris'
+    ws.append(columns)
+    for order in orders:
+        ws.append([order.get(col, '') for col in columns])
+    for i, col in enumerate(columns, 1):
+        ws.column_dimensions[get_column_letter(i)].width = 18
+    from tempfile import NamedTemporaryFile
+    tmp = NamedTemporaryFile()
+    wb.save(tmp.name)
+    tmp.seek(0)
+    response = HttpResponse(tmp.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="paris_orders_{year or "todos"}.xlsx"'
+    return response
+
+@login_required
+def print_paris_picking(request):
+    """Vista para imprimir el picking de órdenes de Paris."""
+    if request.method == 'POST':
+        order_numbers = request.POST.getlist('order_numbers[]')
+        if not order_numbers:
+            messages.error(request, 'No se seleccionaron órdenes para imprimir.')
+            return redirect('paris_orders')
+        
+        # Obtener las órdenes seleccionadas
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT DISTINCT
+                po.subOrderNumber,
+                pi.sku AS paris_sku,
+                pi.name AS producto_nombre,
+                bdd.variant_code AS bsale_sku,
+                bv.barCode AS ean,
+                pi.quantity AS cantidad
+            FROM paris_orders po
+            JOIN paris_items pi ON pi.subOrderNumber = po.subOrderNumber
+            LEFT JOIN bsale_references br ON br.number = po.subOrderNumber
+            LEFT JOIN bsale_documents bd ON bd.id = br.document_id
+            LEFT JOIN bsale_document_details bdd ON bdd.document_id = bd.id
+            LEFT JOIN bsale_variants bv ON bv.id = bdd.variant_id
+            WHERE po.subOrderNumber IN %s
+            ORDER BY po.subOrderNumber, pi.sku
+        """, [tuple(order_numbers)])
+        
+        orders = cursor.fetchall()
+        
+        if not orders:
+            messages.error(request, 'No se encontraron órdenes para imprimir.')
+            return redirect('paris_orders')
+        
+        # Preparar datos para la plantilla
+        picking_data = []
+        current_order = None
+        current_items = []
+        
+        for order in orders:
+            if current_order != order[0]:
+                if current_order is not None:
+                    picking_data.append({
+                        'order_number': current_order,
+                        'items': current_items
+                    })
+                current_order = order[0]
+                current_items = []
+            
+            current_items.append({
+                'paris_sku': order[1],
+                'product_name': order[2],
+                'bsale_sku': order[3],
+                'ean': order[4],
+                'quantity': order[5]
+            })
+        
+        if current_order is not None:
+            picking_data.append({
+                'order_number': current_order,
+                'items': current_items
+            })
+        
+        return render(request, 'marketplace/print_picking.html', {
+            'picking_data': picking_data,
+            'marketplace': 'Paris'
+        })
+    
+    return redirect('paris_orders')
+
+@login_required
+def print_paris_packing(request):
+    """Vista para imprimir el packing de órdenes de Paris."""
+    if request.method == 'POST':
+        order_numbers = request.POST.getlist('order_numbers[]')
+        if not order_numbers:
+            messages.error(request, 'No se seleccionaron órdenes para imprimir.')
+            return redirect('paris_orders')
+        
+        # Obtener las órdenes seleccionadas
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT DISTINCT
+                po.subOrderNumber,
+                po.customer_name,
+                CONCAT_WS(', ', po.billing_address1, po.billing_address2, po.billing_address3, po.billing_city) AS direccion_envio,
+                po.billing_phone,
+                pi.sku AS paris_sku,
+                pi.name AS producto_nombre,
+                pi.quantity AS cantidad
+            FROM paris_orders po
+            JOIN paris_items pi ON pi.subOrderNumber = po.subOrderNumber
+            WHERE po.subOrderNumber IN %s
+            ORDER BY po.subOrderNumber, pi.sku
+        """, [tuple(order_numbers)])
+        
+        orders = cursor.fetchall()
+        
+        if not orders:
+            messages.error(request, 'No se encontraron órdenes para imprimir.')
+            return redirect('paris_orders')
+        
+        # Preparar datos para la plantilla
+        packing_data = []
+        current_order = None
+        current_items = []
+        current_customer = None
+        current_address = None
+        current_phone = None
+        
+        for order in orders:
+            if current_order != order[0]:
+                if current_order is not None:
+                    packing_data.append({
+                        'order_number': current_order,
+                        'customer_name': current_customer,
+                        'shipping_address': current_address,
+                        'phone': current_phone,
+                        'items': current_items
+                    })
+                current_order = order[0]
+                current_customer = order[1]
+                current_address = order[2]
+                current_phone = order[3]
+                current_items = []
+            
+            current_items.append({
+                'paris_sku': order[4],
+                'product_name': order[5],
+                'quantity': order[6]
+            })
+        
+        if current_order is not None:
+            packing_data.append({
+                'order_number': current_order,
+                'customer_name': current_customer,
+                'shipping_address': current_address,
+                'phone': current_phone,
+                'items': current_items
+            })
+        
+        return render(request, 'marketplace/print_packing.html', {
+            'packing_data': packing_data,
+            'marketplace': 'Paris'
+        })
+    
+    return redirect('paris_orders')
+
+@require_http_methods(["POST"])
+@login_required
+def mark_paris_orders_printed(request):
+    """Marca las órdenes de Paris como impresas."""
+    order_numbers = request.POST.getlist('order_numbers[]')
+    if not order_numbers:
+        return JsonResponse({'status': 'error', 'message': 'No se seleccionaron órdenes.'})
+    
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            UPDATE paris_orders 
+            SET orden_impresa = 1 
+            WHERE subOrderNumber IN %s
+        """, [tuple(order_numbers)])
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Se marcaron {len(order_numbers)} órdenes como impresas.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error al marcar órdenes como impresas: {str(e)}'
+        })
+
+@require_http_methods(["POST"])
+@login_required
+def mark_paris_boletas_printed(request):
+    """Marca las boletas de Paris como impresas."""
+    order_numbers = request.POST.getlist('order_numbers[]')
+    if not order_numbers:
+        return JsonResponse({'status': 'error', 'message': 'No se seleccionaron órdenes.'})
+    
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            UPDATE paris_orders 
+            SET boleta_impresa = 1 
+            WHERE subOrderNumber IN %s
+        """, [tuple(order_numbers)])
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Se marcaron {len(order_numbers)} boletas como impresas.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error al marcar boletas como impresas: {str(e)}'
+        })

@@ -17,6 +17,12 @@
             <button id="printBoletasBtn" class="btn btn-warning" disabled>
                 <i class="fas fa-file-invoice"></i> Imprimir Boletas
             </button>
+            <button id="markAsPrintedBtn" class="btn btn-info" disabled>
+                <i class="fas fa-check"></i> Marcar como Impresas
+            </button>
+            <button id="markBoletaAsPrintedBtn" class="btn btn-secondary" disabled>
+                <i class="fas fa-file-pdf"></i> Marcar Boleta como Impresa
+            </button>
         </div>
     </div>
 
@@ -107,26 +113,6 @@
                             <p class="card-text">Total de órdenes completadas</p>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Resumen -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Total Órdenes</h5>
-                    <p class="card-text display-6">{{ total_orders }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Monto Total</h5>
-                    <p class="card-text display-6">${{ total_amount|floatformat:0 }}</p>
                 </div>
             </div>
         </div>
@@ -251,12 +237,16 @@
         const printPickingBtn = document.getElementById('printPickingBtn');
         const printPackingBtn = document.getElementById('printPackingBtn');
         const printBoletasBtn = document.getElementById('printBoletasBtn');
+        const markAsPrintedBtn = document.getElementById('markAsPrintedBtn');
+        const markBoletaAsPrintedBtn = document.getElementById('markBoletaAsPrintedBtn');
 
         function updatePrintButtons() {
             const selectedOrders = document.querySelectorAll('.order-checkbox:checked');
             printPickingBtn.disabled = selectedOrders.length === 0;
             printPackingBtn.disabled = selectedOrders.length === 0;
             printBoletasBtn.disabled = selectedOrders.length === 0;
+            markAsPrintedBtn.disabled = selectedOrders.length === 0;
+            markBoletaAsPrintedBtn.disabled = selectedOrders.length === 0;
         }
 
         selectAll.addEventListener('change', function() {
@@ -333,6 +323,64 @@
                 }
             } else {
                 alert('Por favor seleccione al menos una orden');
+            }
+        });
+
+        // Marcar órdenes como impresas
+        markAsPrintedBtn.addEventListener('click', function() {
+            const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedOrders.length > 0) {
+                fetch('/marketplace/mercadolibre/mark-orders-printed/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({orders: selectedOrders})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error al marcar las órdenes como impresas');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al marcar las órdenes como impresas');
+                });
+            }
+        });
+
+        // Marcar boletas como impresas
+        markBoletaAsPrintedBtn.addEventListener('click', function() {
+            const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedOrders.length > 0) {
+                fetch('/marketplace/mercadolibre/mark-boletas-printed/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({orders: selectedOrders})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error al marcar las boletas como impresas');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al marcar las boletas como impresas');
+                });
             }
         });
     });

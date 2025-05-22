@@ -35,7 +35,23 @@
                             </div>
                             <div class="card-body">
                                 <div id="orderDetails"></div>
-                                
+                                <!-- Modal de éxito al procesar la orden -->
+                                <div class="modal fade" id="orderProcessedModal" tabindex="-1" aria-labelledby="orderProcessedModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-success text-white">
+                                                <h5 class="modal-title" id="orderProcessedModalLabel">¡Orden procesada!</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                ¿Desea escanear otra orden?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-primary" id="scanAnotherBtnModal" data-bs-dismiss="modal">Escanear otra</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <!-- Nuevo escáner de EAN -->
                                 <div class="ean-scanner mt-4">
                                     <div class="card">
@@ -68,6 +84,13 @@
         </div>
     </div>
 </div>
+<!-- Spinner de carga -->
+<div id="orderLoading" class="text-center my-5" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+    </div>
+    <div class="mt-2">Buscando orden...</div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -81,26 +104,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const scanEanButton = document.getElementById('scanEanButton');
     const eanResult = document.getElementById('eanResult');
     const eanAlert = eanResult.querySelector('.alert');
+    const orderLoading = document.getElementById('orderLoading');
+    const orderProcessedModal = new bootstrap.Modal(document.getElementById('orderProcessedModal'));
+    const scanAnotherBtnModal = document.getElementById('scanAnotherBtnModal');
     
     let currentOrderInfo = null;
 
     // Función para buscar la orden
     async function searchOrder(orderNumber) {
+        orderResult.style.display = 'none';
+        orderDetails.innerHTML = '';
+        orderLoading.style.display = 'block';
         try {
             const response = await fetch(`/marketplace/scan-order/?order_number=${orderNumber}`);
             const data = await response.json();
-
+            orderLoading.style.display = 'none';
             if (data.success) {
                 currentOrderInfo = data.order_info;
                 displayOrderInfo(data.order_info);
-                // Mostrar el escáner de EAN
                 document.querySelector('.ean-scanner').style.display = 'block';
-                // Enfocar el input de EAN
                 eanInput.focus();
             } else {
                 showError(data.error || 'Error al buscar la orden');
             }
         } catch (error) {
+            orderLoading.style.display = 'none';
             showError('Error al conectar con el servidor');
         }
     }
@@ -111,15 +139,11 @@ document.addEventListener('DOMContentLoaded', function() {
             showEanError('Primero debe escanear una orden');
             return;
         }
-
         let found = false;
         let foundProduct = null;
         let foundMarketplace = null;
-
-        // Buscar el EAN en todos los marketplaces
         for (const [marketplace, info] of Object.entries(currentOrderInfo)) {
             for (const producto of info.productos) {
-                // Dividir los EANs por comas y verificar cada uno
                 const eans = producto.ean_bsale.split(',').map(e => e.trim());
                 if (eans.includes(ean)) {
                     found = true;
@@ -130,16 +154,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (found) break;
         }
-
         if (found) {
             showEanSuccess(`¡Producto encontrado! ${foundProduct.producto} (${foundMarketplace.toUpperCase()})`);
-            // Aquí puedes agregar la lógica para procesar la orden
-            // Por ejemplo, marcar el producto como escaneado
             foundProduct.scanned = true;
-            // Llamar al backend para marcar la orden como procesada
             marcarOrdenProcesada(foundMarketplace, currentOrderInfo[foundMarketplace].order_number);
-            // Actualizar la visualización
             displayOrderInfo(currentOrderInfo);
+            // Mostrar modal de orden procesada y ocultar detalles
+            setTimeout(() => {
+                orderResult.style.display = 'block';
+                orderDetails.innerHTML = '';
+                document.querySelector('.ean-scanner').style.display = 'none';
+                orderProcessedModal.show();
+            }, 1200);
         } else {
             showEanError('EAN no encontrado en la orden');
         }
@@ -380,6 +406,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         return cookieValue;
+    }
+
+    // Botón del modal para escanear otra orden
+    if (scanAnotherBtnModal) {
+        scanAnotherBtnModal.addEventListener('click', function() {
+            orderResult.style.display = 'none';
+            orderNumberInput.value = '';
+            eanInput.value = '';
+            orderNumberInput.focus();
+        });
     }
 });
 </script>

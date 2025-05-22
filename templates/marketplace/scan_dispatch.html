@@ -5,14 +5,14 @@
     <h2 class="mb-4">Despachar Orden por Escaneo</h2>
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <div id="reader" style="width:100%"></div>
+            <div id="reader" style="width:100%; min-height:400px"></div>
             <div id="result" class="mt-4"></div>
         </div>
     </div>
 </div>
 {% endblock %}
 {% block extra_js %}
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 function showResult(message, success, marketplace) {
     const resultDiv = document.getElementById('result');

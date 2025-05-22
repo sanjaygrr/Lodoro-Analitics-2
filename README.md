@@ -19,7 +19,7 @@ Sistema de análisis y gestión de órdenes para marketplaces (Paris, Ripley, Fa
 ## 🛠️ Instalación local
 
 1. Clona el repositorio:
-   git clone https://github.com/tu_usuario/tu_repo.git
+   git clone https://github.com/sanjaygrr/Lodoro-Analitics-2
    cd tu_repo
 
 2. Crea y activa un entorno virtual:
@@ -121,7 +121,3 @@ Sistema de análisis y gestión de órdenes para marketplaces (Paris, Ripley, Fa
 - [ ] Las credenciales y datos sensibles no están expuestos en el código.
 
 ---
-
-## 📞 Soporte
-
-Para dudas o soporte, contacta a: [tu_email@dominio.com] 

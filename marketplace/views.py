@@ -583,7 +583,8 @@ def print_packing(request):
             if order_id not in grouped_orders:
                 try:
                     barcode_buffer = BytesIO()
-                    barcode_instance = barcode.get('code128', order_id, writer=ImageWriter())
+                    BarcodeClass = barcode.get_barcode_class('code128')
+                    barcode_instance = BarcodeClass(order_id, writer=ImageWriter())
                     options = {
                         'module_width': 1.5,    # Reducido de 2 a 1.5
                         'module_height': 30.0,   # Reducido de 50 a 30
@@ -838,7 +839,8 @@ def print_ripley_packing(request):
             if order_id not in grouped_orders:
                 try:
                     barcode_buffer = BytesIO()
-                    barcode_instance = barcode.get('code128', order_id, writer=ImageWriter())
+                    BarcodeClass = barcode.get_barcode_class('code128')
+                    barcode_instance = BarcodeClass(order_id, writer=ImageWriter())
                     options = {
                         'module_width': 1.5,    # Reducido de 2 a 1.5
                         'module_height': 30.0,   # Reducido de 50 a 30
@@ -1006,7 +1008,8 @@ def print_falabella_packing(request):
             if order_id not in grouped_orders:
                 try:
                     barcode_buffer = BytesIO()
-                    barcode_instance = barcode.get('code128', order_id, writer=ImageWriter())
+                    BarcodeClass = barcode.get_barcode_class('code128')
+                    barcode_instance = BarcodeClass(order_id, writer=ImageWriter())
                     options = {
                         'module_width': 0.8,    # Reducido para hacer el código más compacto
                         'module_height': 20.0,   # Reducido para hacer el código más compacto

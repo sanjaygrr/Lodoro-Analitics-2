@@ -5,7 +5,6 @@ Django settings for lodoro_analytics project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-import dj_database_url
 
 # Cargar variables de entorno desde .env si existe
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
@@ -22,7 +21,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-^o7l!k+13c%ak6vwvno@#
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # Heroku configuration
-ALLOWED_HOSTS = ['*']  # Heroku manejará esto automáticamente
+ALLOWED_HOSTS = ['lodoro-analiticis-337f9d06fd63.herokuapp.com', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -72,27 +71,23 @@ WSGI_APPLICATION = 'lodoro_analytics.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# Configuración de base de datos para Heroku
-if 'DATABASE_URL' in os.environ:
-    # En Heroku con PostgreSQL
-    DATABASES = {
-        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+# Configuración de base de datos MySQL
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'db5skbdigd2nxo'),
+        'USER': os.environ.get('DB_USER', 'u16uxkx6gdqb2'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', '31|(533])1g&'),
+        'HOST': os.environ.get('DB_HOST', '34.174.37.175'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'ssl': {
+                'ssl-mode': 'preferred'
+            }
+        },
     }
-else:
-    # Desarrollo local con MySQL
-    DATABASES = {
-        'default': {
-            'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.mysql'),
-            'NAME': os.environ.get('DB_NAME', 'db5skbdigd2nxo'),
-            'USER': os.environ.get('DB_USER', 'u16uxkx6gdqb2'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', '31|(533])1g&'),
-            'HOST': os.environ.get('DB_HOST', '34.174.37.175'),
-            'PORT': os.environ.get('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-            },
-        }
-    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -148,3 +143,7 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 86400
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

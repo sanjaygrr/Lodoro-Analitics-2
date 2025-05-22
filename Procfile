@@ -1,0 +1,1 @@
+web: gunicorn lodoro_analytics.wsgi --log-file -

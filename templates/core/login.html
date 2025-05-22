@@ -9,7 +9,7 @@
         <div class="col-md-6 col-lg-4">
             <div class="card shadow-lg border-0 rounded-lg">
                 <div class="card-header bg-gradient text-white text-center py-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <img src="{% static 'img/logo.svg' %}" alt="Lodoro Analytics" class="img-fluid mb-3" style="max-height: 60px;">
+                    <span class="lodoro-logo-text"><span class="lodoro-bold">Lodoro</span>Analytics</span>
                     <h3 class="mb-0">Iniciar Sesión</h3>
                 </div>
                 <div class="card-body p-4">
@@ -54,6 +54,10 @@
 }
 .card-header {
     border-bottom: none;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    min-height: 90px;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
 }
 .form-floating > .form-control {
     padding: 1rem 0.75rem;
@@ -78,6 +82,25 @@
 .alert {
     border-radius: 10px;
     border: none;
+}
+.lodoro-logo-text {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff !important;
+    background: none !important;
+    padding: 0;
+    margin: 0 0 0.5rem 0;
+    line-height: 1;
+    letter-spacing: -1px;
+    display: block;
+    border-radius: 0;
+    box-shadow: none;
+    white-space: nowrap;
+    text-shadow: 0 2px 8px #222, 0 1px 0 #000, 0 0 2px #000, 0 0 8px #000;
+}
+.lodoro-logo-text .lodoro-bold {
+    font-weight: 900;
+    letter-spacing: -1px;
 }
 </style>
 {% endblock %} 

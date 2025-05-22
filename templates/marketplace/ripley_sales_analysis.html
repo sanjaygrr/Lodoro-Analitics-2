@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Análisis de Ventas Ripley{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Análisis de Ventas Ripley</h2>
+
+    <!-- Filtros Interactivos -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label for="yearFilter" class="form-label">Año</label>
+            <select id="yearFilter" class="form-select">
+                <option value="">Todos</option>
+                {% for y in years %}
+                    <option value="{{ y }}" {% if y == year_selected %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <!-- Histograma de Ventas Mensuales -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Ventas Mensuales</h5>
+                    <canvas id="monthlySalesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Estados de Órdenes -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Estados de Órdenes (Top 5 + Otros)</h5>
+                    <canvas id="orderStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 20 Productos Históricos -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Top 20 Productos Históricos</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle" id="topProductsTable">
+                            <thead>
+                                <tr>
+                                    <th>EAN</th>
+                                    <th>Producto</th>
+                                    <th>SKU BSale</th>
+                                    <th>Cantidad Vendida</th>
+                                    <th style="width: 200px;">Progreso</th>
+                                    <th>Total Vendido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in top_products %}
+                                <tr>
+                                    <td>{{ product.0 }}</td>
+                                    <td><strong>{{ product.1 }}</strong></td>
+                                    <td>{{ product.2 }}</td>
+                                    <td>{{ product.3 }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 18px;">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ product.3|floatformat:0|divisibleby:top_products.0.3|floatformat:0 }}%" aria-valuenow="{{ product.3 }}" aria-valuemin="0" aria-valuemax="{{ top_products.0.3 }}"></div>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-success">${{ product.4|floatformat:0 }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ventas Mensuales Tabla -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Ventas Mensuales (Tabla)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered" id="monthlySalesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Año</th>
+                                    <th>Mes</th>
+                                    <th>Total Boletas</th>
+                                    <th>Venta Neta</th>
+                                    <th>IVA</th>
+                                    <th>Venta Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sale in monthly_sales %}
+                                <tr {% if forloop.first %}class="table-success"{% endif %}>
+                                    <td>{{ sale.0 }}</td>
+                                    <td>{{ sale.1 }}</td>
+                                    <td><span class="badge bg-primary">{{ sale.2 }}</span></td>
+                                    <td><strong>${{ sale.3|floatformat:0 }}</strong></td>
+                                    <td>${{ sale.4|floatformat:0 }}</td>
+                                    <td><span class="badge bg-success">${{ sale.5|floatformat:0 }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Órdenes Ripley (llamada a función almacenada) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Órdenes Ripley (últimas 100)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm" id="ripleyOrdersTable">
+                            <thead>
+                                <tr>
+                                    <th>Orden</th>
+                                    <th>Cliente</th>
+                                    <th>Producto</th>
+                                    <th>SKU</th>
+                                    <th>EAN</th>
+                                    <th>Boleta</th>
+                                    <th>Total</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in ripley_orders %}
+                                <tr>
+                                    <td>{{ order.orden_ripley }}</td>
+                                    <td>{{ order.cliente }}</td>
+                                    <td>{{ order.producto }}</td>
+                                    <td>{{ order.sku_bsale }}</td>
+                                    <td>{{ order.ean_bsale }}</td>
+                                    <td>{{ order.numero_boleta }}</td>
+                                    <td>${{ order.costo_total|floatformat:0 }}</td>
+                                    <td>{{ order.fecha_creacion }}</td>
+                                    <td>{{ order.estado_despacho }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón de descarga Excel -->
+    <div class="row mb-2">
+        <div class="col-12 text-end">
+            <a href="{% url 'exportar_ripley_orders_excel' %}?year={{ year_selected }}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Descargar Excel del periodo
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#yearFilter').on('change', function() {
+        const year = $(this).val();
+        const url = new URL(window.location.href);
+        if (year) {
+            url.searchParams.set('year', year);
+        } else {
+            url.searchParams.delete('year');
+        }
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    });
+
+    $('#ripleyOrdersTable').DataTable({
+        paging: false,
+        searching: true,
+        info: false,
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'csv',
+                text: 'Descargar CSV',
+                className: 'btn btn-success btn-sm mb-2'
+            }
+        ],
+        language: {
+            search: 'Buscar:',
+            zeroRecords: 'No se encontraron órdenes',
+            infoEmpty: 'Sin datos',
+            buttons: {
+                csv: 'Descargar CSV'
+            }
+        }
+    });
+
+    // --- Gráfico de Ventas Mensuales (Histograma) ---
+    const rawMonthlySales = {{ monthly_sales_json|safe }};
+    const selectedYear = '{{ year_selected }}';
+    let filteredSales = rawMonthlySales;
+    if (selectedYear) {
+        filteredSales = rawMonthlySales.filter(sale => sale[0] == selectedYear);
+    }
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const salesLabels = filteredSales.map(sale => months[parseInt(sale[1])-1] + ' ' + sale[0]);
+    const salesData = filteredSales.map(sale => sale[5]);
+    const salesChartCtx = document.getElementById('monthlySalesChart').getContext('2d');
+    if (salesLabels.length > 0 && salesData.some(x => x > 0)) {
+        new Chart(salesChartCtx, {
+            type: 'bar',
+            data: {
+                labels: salesLabels,
+                datasets: [{
+                    label: 'Venta Total',
+                    data: salesData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Ventas Mensuales'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    } else {
+        salesChartCtx.font = '16px Arial';
+        salesChartCtx.fillText('No hay datos para mostrar', 50, 50);
+    }
+
+    // --- Gráfico de Estados de Órdenes (Top 5 + Otros) ---
+    const rawStatusStats = {{ monthly_status_stats_json|safe }};
+    let filteredStatus = rawStatusStats;
+    if (selectedYear) {
+        filteredStatus = rawStatusStats.filter(stat => stat[0] == selectedYear);
+    }
+    const estadoMap = {};
+    filteredStatus.forEach(stat => {
+        const estado = stat[2] || 'Sin Estado';
+        estadoMap[estado] = (estadoMap[estado] || 0) + stat[3];
+    });
+    const estadosOrdenados = Object.entries(estadoMap).sort((a,b) => b[1]-a[1]);
+    const topEstados = estadosOrdenados.slice(0,5);
+    const otrosTotal = estadosOrdenados.slice(5).reduce((acc, curr) => acc + curr[1], 0);
+    const estadosLabels = topEstados.map(e => e[0]);
+    const estadosData = topEstados.map(e => e[1]);
+    if (otrosTotal > 0) {
+        estadosLabels.push('Otros');
+        estadosData.push(otrosTotal);
+    }
+    const statusChartCtx = document.getElementById('orderStatusChart').getContext('2d');
+    if (estadosLabels.length > 0 && estadosData.reduce((a,b) => a+b,0) > 0) {
+        new Chart(statusChartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: estadosLabels,
+                datasets: [{
+                    label: 'Órdenes',
+                    data: estadosData,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 205, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(201, 203, 207, 0.7)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Distribución de Estados'
+                    }
+                }
+            }
+        });
+    } else {
+        statusChartCtx.font = '16px Arial';
+        statusChartCtx.fillText('No hay datos para mostrar', 50, 50);
+    }
+});
+</script>
+{% endblock %} 

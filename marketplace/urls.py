@@ -42,4 +42,6 @@ urlpatterns = [
     path('paris/mark-boletas-printed/', views.mark_paris_boletas_printed, name='mark_paris_boletas_printed'),
     path('paris/sales-analysis/', views.paris_sales_analysis, name='paris_sales_analysis'),
     path('paris/exportar-excel/', views.exportar_paris_orders_excel, name='exportar_paris_orders_excel'),
+    path('ripley/sales-analysis/', views.ripley_sales_analysis, name='ripley_sales_analysis'),
+    path('ripley/exportar-excel/', views.exportar_ripley_orders_excel, name='exportar_ripley_orders_excel'),
 ] 

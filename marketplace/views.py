@@ -18,6 +18,7 @@ from django.contrib import messages
 import openpyxl
 from openpyxl.utils import get_column_letter
 from tempfile import NamedTemporaryFile
+import decimal
 
 @login_required
 def paris_orders(request):
@@ -1846,6 +1847,17 @@ def mark_mercadolibre_boletas_printed(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+def decimal_to_float(obj):
+    if isinstance(obj, list):
+        return [decimal_to_float(i) for i in obj]
+    if isinstance(obj, tuple):
+        return tuple(decimal_to_float(i) for i in obj)
+    if isinstance(obj, dict):
+        return {k: decimal_to_float(v) for k, v in obj.items()}
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    return obj
+
 @login_required
 def paris_sales_analysis(request):
     # Filtros
@@ -1897,8 +1909,8 @@ def paris_sales_analysis(request):
         'next_page': next_page,
         'page_range': page_range,
         'per_page': per_page,
-        'monthly_sales_json': json.dumps(monthly_sales),
-        'monthly_status_stats_json': json.dumps(monthly_status_stats),
+        'monthly_sales_json': json.dumps(decimal_to_float(monthly_sales)),
+        'monthly_status_stats_json': json.dumps(decimal_to_float(monthly_status_stats)),
     }
     return render(request, 'marketplace/paris_sales_analysis.html', context)
 
@@ -2130,3 +2142,100 @@ def mark_paris_boletas_printed(request):
             'status': 'error',
             'message': f'Error al marcar boletas como impresas: {str(e)}'
         })
+
+@login_required
+def ripley_sales_analysis(request):
+    import decimal
+    year = request.GET.get('year', '')
+    page = int(request.GET.get('page', 1))
+    per_page = 50
+    offset = (page - 1) * per_page
+    date_from = f"{year}-01-01" if year else None
+    date_to = f"{year}-12-31" if year else None
+    with connection.cursor() as cursor:
+        cursor.execute('CALL get_ripley_top_products()')
+        top_products = cursor.fetchall()
+        cursor.execute('CALL get_ripley_monthly_top_products()')
+        monthly_top_products = cursor.fetchall()
+        cursor.execute('CALL get_ripley_monthly_status_stats()')
+        monthly_status_stats = cursor.fetchall()
+        cursor.execute('CALL get_ripley_monthly_sales()')
+        monthly_sales = cursor.fetchall()
+        years = sorted(list(set([str(sale[0]) for sale in monthly_sales if sale[0]])), reverse=True)
+        # Traer órdenes paginadas usando el procedimiento almacenado de órdenes ripley
+        cursor.execute(
+            "CALL get_ripley_orders(%s, %s, %s, %s, %s, %s, %s, %s, @p_total_orders, @p_total_amount)",
+            [None, None, None, date_from, date_to, None, per_page, offset]
+        )
+        columns = [col[0] for col in cursor.description]
+        ripley_orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.execute("SELECT @p_total_orders, @p_total_amount")
+        total_orders, total_amount = cursor.fetchone()
+    total_pages = (total_orders + per_page - 1) // per_page if total_orders else 1
+    has_previous = page > 1
+    has_next = page < total_pages
+    previous_page = page - 1
+    next_page = page + 1
+    page_range = range(max(1, page - 2), min(total_pages + 1, page + 3))
+    def decimal_to_float(obj):
+        if isinstance(obj, list):
+            return [decimal_to_float(i) for i in obj]
+        if isinstance(obj, tuple):
+            return tuple(decimal_to_float(i) for i in obj)
+        if isinstance(obj, dict):
+            return {k: decimal_to_float(v) for k, v in obj.items()}
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return obj
+    context = {
+        'top_products': top_products,
+        'monthly_top_products': monthly_top_products,
+        'monthly_status_stats': monthly_status_stats,
+        'monthly_sales': monthly_sales,
+        'ripley_orders': ripley_orders,
+        'total_orders': total_orders,
+        'total_amount': total_amount,
+        'years': years,
+        'year_selected': year,
+        'page': page,
+        'total_pages': total_pages,
+        'has_previous': has_previous,
+        'has_next': has_next,
+        'previous_page': previous_page,
+        'next_page': next_page,
+        'page_range': page_range,
+        'per_page': per_page,
+        'monthly_sales_json': json.dumps(decimal_to_float(monthly_sales)),
+        'monthly_status_stats_json': json.dumps(decimal_to_float(monthly_status_stats)),
+    }
+    return render(request, 'marketplace/ripley_sales_analysis.html', context)
+
+@login_required
+def exportar_ripley_orders_excel(request):
+    year = request.GET.get('year', '')
+    date_from = f"{year}-01-01" if year else None
+    date_to = f"{year}-12-31" if year else None
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL get_ripley_orders(%s, %s, %s, %s, %s, %s, %s, %s, @p_total_orders, @p_total_amount)",
+            [None, None, None, date_from, date_to, None, 100000, 0]
+        )
+        columns = [col[0] for col in cursor.description]
+        orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    import openpyxl
+    from openpyxl.utils import get_column_letter
+    from tempfile import NamedTemporaryFile
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Órdenes Ripley'
+    ws.append(columns)
+    for order in orders:
+        ws.append([order.get(col, '') for col in columns])
+    for i, col in enumerate(columns, 1):
+        ws.column_dimensions[get_column_letter(i)].width = 18
+    tmp = NamedTemporaryFile()
+    wb.save(tmp.name)
+    tmp.seek(0)
+    response = HttpResponse(tmp.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="ripley_orders_{year or 'todos'}.xlsx"'
+    return response

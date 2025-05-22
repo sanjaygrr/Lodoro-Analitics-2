@@ -1,0 +1,220 @@
+{% load marketplace_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Packing - Órdenes Falabella</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #333;
+        }
+        .order-section {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .order-header {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        .order-header h2 {
+            margin: 0;
+            color: #333;
+            text-align: center;
+        }
+        .barcode {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .barcode img {
+            max-width: 100%;
+            height: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: #fff;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        .product-row {
+            background-color: #fff;
+        }
+        .product-row:hover {
+            background-color: #f9f9f9;
+        }
+        .totals {
+            margin-top: 20px;
+            text-align: right;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .totals p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+        .totals .label {
+            font-weight: bold;
+            color: #666;
+        }
+        .shipping-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .shipping-info h3 {
+            margin-top: 0;
+            color: #666;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .shipping-info p {
+            margin: 5px 0;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+            .order-section {
+                page-break-after: always;
+                margin: 0;
+                padding: 20px;
+                border: 2px solid #333;
+                box-shadow: none;
+            }
+            .order-section:last-child {
+                page-break-after: avoid;
+            }
+            .header {
+                position: running(header);
+                border: none;
+                margin: 0;
+                padding: 0;
+            }
+            @page {
+                margin: 1cm;
+                @top-center {
+                    content: element(header);
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Documento de Packing</h1>
+        <p>Fecha: {{ fecha_actual|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    {% for order in orders %}
+    <div class="order-section">
+        <div class="order-header">
+            <h2>Orden {{ order.orden_falabella }}</h2>
+        </div>
+
+        <div class="barcode">
+            {% if order.barcode %}
+            <img src="data:image/png;base64,{{ order.barcode }}" alt="Código de barras">
+            {% endif %}
+        </div>
+
+        <div class="shipping-info">
+            <h3>Información de Envío</h3>
+            <p><strong>Cliente:</strong> {{ order.cliente }}</p>
+            <p><strong>Dirección:</strong> {{ order.direccion }}</p>
+            <p><strong>Comuna:</strong> {{ order.comuna }}</p>
+            <p><strong>Ciudad:</strong> {{ order.ciudad }}</p>
+            {% if order.codigo_postal %}
+            <p><strong>Código Postal:</strong> {{ order.codigo_postal }}</p>
+            {% endif %}
+            {% if order.telefono %}
+            <p><strong>Teléfono:</strong> {{ order.telefono }}</p>
+            {% endif %}
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>SKU</th>
+                    <th>EAN</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in order.productos %}
+                <tr class="product-row">
+                    <td>{{ producto.producto }}</td>
+                    <td>{{ producto.sku_bsale }}</td>
+                    <td>{{ producto.ean_bsale }}</td>
+                    <td>{{ producto.cantidad }}</td>
+                    <td>${{ producto.precio|floatformat:2 }}</td>
+                    <td>${{ producto.precio|multiply:producto.cantidad|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <p><span class="label">Subtotal:</span> ${{ order.costo_neto|floatformat:2 }}</p>
+            <p><span class="label">IVA:</span> ${{ order.iva|floatformat:2 }}</p>
+            {% if order.costo_despacho %}
+            <p><span class="label">Costo de Envío:</span> ${{ order.costo_despacho|floatformat:2 }}</p>
+            {% endif %}
+            <p><span class="label">Total:</span> ${{ order.costo_total|floatformat:2 }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()">Imprimir</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html> 

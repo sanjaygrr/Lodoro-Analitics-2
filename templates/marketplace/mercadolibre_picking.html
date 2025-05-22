@@ -1,0 +1,172 @@
+{% load marketplace_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Picking - Resumen de Productos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #333;
+        }
+        .summary-section {
+            margin-bottom: 30px;
+        }
+        .summary-section h2 {
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        .product-row {
+            background-color: #fff;
+        }
+        .product-row:hover {
+            background-color: #f9f9f9;
+        }
+        .order-details {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .order-details h3 {
+            margin-top: 0;
+            color: #666;
+        }
+        .order-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .order-list li {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .total-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            text-align: right;
+        }
+        .total-section p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+        .total-section .label {
+            font-weight: bold;
+            color: #666;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Documento de Picking</h1>
+        <p>Fecha: {{ fecha_actual|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <div class="summary-section">
+        <h2>Resumen de Productos a Retirar</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>SKU</th>
+                    <th>EAN</th>
+                    <th>Cantidad Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                <tr class="product-row">
+                    <td>{{ producto.producto }}</td>
+                    <td>{{ producto.sku_bsale }}</td>
+                    <td>{{ producto.ean_bsale }}</td>
+                    <td>{{ producto.cantidad_total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <p><span class="label">Total de Productos Diferentes:</span> {{ productos|length }}</p>
+            <p><span class="label">Total de Unidades a Retirar:</span> {{ productos|sum_list:"cantidad_total" }}</p>
+        </div>
+    </div>
+
+    <div class="order-details">
+        <h3>Detalle por Orden</h3>
+        <ul class="order-list">
+            {% for orden_id, info in ordenes_info.items %}
+            <li>
+                <strong>Orden {{ orden_id }} - {{ info.cliente }}</strong>
+                <ul style="margin: 5px 0 10px 20px; color: #666;">
+                    {% for producto in productos %}
+                        {% for orden in producto.ordenes %}
+                            {% if orden.orden_mercadolibre == orden_id %}
+                                <li>{{ orden.cantidad }}x {{ producto.producto }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()">Imprimir</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html> 

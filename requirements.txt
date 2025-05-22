@@ -9,3 +9,4 @@ matplotlib==3.8.3
 numpy==1.26.4
 reportlab==4.0.7
 PyPDF2==3.0.1
+barcode==1.0.4

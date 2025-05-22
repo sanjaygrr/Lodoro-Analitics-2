@@ -1,0 +1,57 @@
+/* Estilos generales */
+.table-responsive {
+    margin-top: 1rem;
+}
+
+.card {
+    margin-bottom: 1.5rem;
+}
+
+.badge {
+    margin-left: 0.5rem;
+}
+
+/* Estilos para la tabla */
+.table th {
+    background-color: #f8f9fc;
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Estilos para los botones de acción */
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Estilos para la paginación */
+.pagination {
+    margin-top: 1rem;
+}
+
+/* Estilos para los filtros */
+.form-control {
+    margin-bottom: 0.5rem;
+}
+
+/* Estilos para los badges de estado */
+.badge-primary {
+    background-color: #4e73df;
+}
+
+.badge-success {
+    background-color: #1cc88a;
+}
+
+/* Estilos para los enlaces de boleta */
+a[target="_blank"] {
+    color: #4e73df;
+    text-decoration: none;
+}
+
+a[target="_blank"]:hover {
+    text-decoration: underline;
+} 

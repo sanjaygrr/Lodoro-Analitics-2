@@ -146,3 +146,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# BSale credentials
+BSALE_USERNAME = os.environ.get('BSALE_USERNAME', '')
+BSALE_PASSWORD = os.environ.get('BSALE_PASSWORD', '')

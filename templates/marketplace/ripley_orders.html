@@ -1,523 +1,312 @@
 {% extends 'base.html' %}
 
-{% block title %}Órdenes Ripley | Lodoro Analytics{% endblock %}
+{% block title %}Órdenes de Ripley{% endblock %}
 
 {% block content %}
-<style>
-    .form-check-input {
-        width: 1.2em;
-        height: 1.2em;
-        margin-top: 0.25em;
-        vertical-align: top;
-        background-color: #fff;
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: contain;
-        border: 1px solid rgba(0,0,0,.25);
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        -webkit-print-color-adjust: exact;
-        color-adjust: exact;
-        cursor: pointer;
-    }
-
-    .form-check-input:checked {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-
-    .form-check-input:focus {
-        border-color: #86b7fe;
-        outline: 0;
-        box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
-    }
-
-    .form-check-input:disabled {
-        pointer-events: none;
-        filter: none;
-        opacity: .5;
-    }
-
-    .form-check-input[type="checkbox"] {
-        border-radius: 0.25em;
-    }
-
-    .form-check-input[type="radio"] {
-        border-radius: 50%;
-    }
-</style>
-
-<div class="container-fluid py-4">
-    <div class="row">
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Órdenes de Ripley</h1>
+    
+    <!-- Resumen de Estadísticas -->
+    <div class="row mb-3">
         <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header pb-0">
-                    <div class="row">
-                        <div class="col-6">
-                            <h6>Órdenes Ripley</h6>
-                            <p class="text-sm">
-                                <span class="font-weight-bold">Total:</span> {{ total_orders }} órdenes
-                                <span class="font-weight-bold ml-3">Monto Total:</span> ${{ total_amount|floatformat:0 }}
-                            </p>
-                        </div>
-                        <div class="col-6 text-end">
-                            <a href="{% url 'home' %}" class="btn btn-outline-primary btn-sm mb-0">Volver al Dashboard</a>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Órdenes Nuevas</h5>
+                            <h2 class="card-text">{{ stats.nuevas }}</h2>
+                            <p class="card-text">Sin procesar ni imprimir</p>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Filtros -->
-                <div class="card-header pb-0">
-                    <form method="get" action="{% url 'ripley_orders' %}">
-                        {% csrf_token %}
-                        <div class="row">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="status">Estado</label>
-                                    <select class="form-control" id="status" name="status">
-                                        <option value="" {% if not status_filter %}selected{% endif %}>Todos</option>
-                                        <option value="NUEVA" {% if status_filter == 'NUEVA' %}selected{% endif %}>Nueva</option>
-                                        <option value="PROCESADA" {% if status_filter == 'PROCESADA' %}selected{% endif %}>Procesada</option>
-                                        <option value="ENVIADA" {% if status_filter == 'ENVIADA' %}selected{% endif %}>Enviada</option>
-                                        <option value="CANCELADA" {% if status_filter == 'CANCELADA' %}selected{% endif %}>Cancelada</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="processed">Procesada</label>
-                                    <select class="form-control" id="processed" name="processed">
-                                        <option value="" {% if not processed_filter %}selected{% endif %}>Todos</option>
-                                        <option value="yes" {% if processed_filter == 'yes' %}selected{% endif %}>Sí</option>
-                                        <option value="no" {% if processed_filter == 'no' %}selected{% endif %}>No</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="printed">Impresa</label>
-                                    <select class="form-control" id="printed" name="printed">
-                                        <option value="" {% if not printed_filter %}selected{% endif %}>Todos</option>
-                                        <option value="yes" {% if printed_filter == 'yes' %}selected{% endif %}>Sí</option>
-                                        <option value="no" {% if printed_filter == 'no' %}selected{% endif %}>No</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="date_from">Desde</label>
-                                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="date_to">Hasta</label>
-                                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="search">Buscar</label>
-                                    <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="ID Orden...">
-                                </div>
-                            </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Por Procesar</h5>
+                            <h2 class="card-text">{{ stats.por_procesar }}</h2>
+                            <p class="card-text">Impresas sin procesar</p>
                         </div>
-                        <div class="row mt-3">
-                            <div class="col-12 text-end">
-                                <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
-                                <a href="{% url 'ripley_orders' %}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
-                                <button id="print-selected" class="btn btn-info btn-sm" disabled>
-                                    <i class="fas fa-print"></i> Imprimir Boletas Seleccionadas
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-                
-                <!-- Tabla de órdenes -->
-                <div class="card-body px-0 pt-0 pb-2">
-                    <div class="table-responsive p-0">
-                        <table class="table align-items-center mb-0">
-                            <thead>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Por Despachar</h5>
+                            <h2 class="card-text">{{ stats.por_despachar }}</h2>
+                            <p class="card-text">Procesadas sin despachar</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Despachadas</h5>
+                            <h2 class="card-text">{{ stats.despachadas }}</h2>
+                            <p class="card-text">Total de órdenes completadas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Órdenes Ripley</h5>
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="btn-print-boletas" disabled>Imprimir Boletas</button>
+                <button type="button" class="btn btn-info" id="printPickingBtn" disabled>
+                    <i class="fas fa-clipboard-list"></i> Imprimir Picking
+                </button>
+                <button type="button" class="btn btn-success" id="printPackingBtn" disabled>
+                    <i class="fas fa-box"></i> Imprimir Packing
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" class="mb-4">
+                <div class="row">
+                    <div class="col-md-2">
+                        <select name="status" class="form-control">
+                            <option value="">Todos los estados</option>
+                            {% for option in status_options %}
+                                <option value="{{ option.value }}" {% if option.value == status_filter %}selected{% endif %}>{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="processed" class="form-control">
+                            <option value="">Todos los procesados</option>
+                            <option value="yes" {% if processed_filter == 'yes' %}selected{% endif %}>Procesados</option>
+                            <option value="no" {% if processed_filter == 'no' %}selected{% endif %}>No procesados</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="printed" class="form-control">
+                            <option value="">Todos los impresos</option>
+                            <option value="yes" {% if printed_filter == 'yes' %}selected{% endif %}>Impresos</option>
+                            <option value="no" {% if printed_filter == 'no' %}selected{% endif %}>No impresos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" name="date_from" class="form-control" value="{{ date_from }}" placeholder="Desde">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" name="date_to" class="form-control" value="{{ date_to }}" placeholder="Hasta">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Buscar...">
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Filtrar</button>
+                        <a href="{% url 'ripley_orders' %}" class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="select-all" class="form-check-input">
+                            </th>
+                            <th>ID Ripley</th>
+                            <th>Cliente</th>
+                            <th>Producto</th>
+                            <th>Boleta</th>
+                            <th>Total</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Estados</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if orders %}
+                            {% for order in orders %}
                                 <tr>
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                        <input type="checkbox" id="select-all-orders" class="form-check-input">
-                                    </th>
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">ID Orden</th>
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Tipo Envío</th>
-                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Fecha</th>
-                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Monto</th>
-                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Boleta</th>
-                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Estado</th>
-                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in orders %}
-                                <tr>
-                                    <td class="align-middle text-center">
+                                    <td>
                                         <input type="checkbox" class="form-check-input order-checkbox" 
-                                            data-order-id="{{ order.order_id }}" 
-                                            data-boleta-url="{% if order.boleta_url %}{{ order.boleta_url }}{% endif %}">
+                                               data-boleta-url="{{ order.url_boleta }}" {% if not order.url_boleta %}disabled{% endif %}>
+                                    </td>
+                                    <td>{{ order.orden_ripley }}</td>
+                                    <td>{{ order.cliente }}</td>
+                                    <td>{{ order.producto }}</td>
+                                    <td>
+                                        {% if order.numero_boleta %}
+                                            <a href="{{ order.url_boleta }}" target="_blank">{{ order.numero_boleta }}</a>
+                                        {% else %}
+                                            Sin boleta
+                                        {% endif %}
+                                    </td>
+                                    <td>${{ order.costo_total|floatformat:2 }}</td>
+                                    <td>{{ order.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <span class="badge {% if order.estado_despacho == 'NUEVA' %}bg-primary{% elif order.estado_despacho == 'PROCESADA' %}bg-info{% elif order.estado_despacho == 'ENVIADA' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ order.estado_despacho }}
+                                        </span>
                                     </td>
                                     <td>
-                                        <div class="d-flex px-2 py-1">
-                                            <div class="d-flex flex-column justify-content-center">
-                                                <h6 class="mb-0 text-sm">{{ order.order_id }}</h6>
-                                                <p class="text-xs text-secondary mb-0">Com: {{ order.commercial_id|default:"-" }}</p>
-                                            </div>
+                                        <div class="d-flex flex-column gap-1">
+                                            <span class="badge {% if order.orden_impresa %}bg-success{% else %}bg-secondary{% endif %}">
+                                                <i class="fas fa-print"></i> {% if order.orden_impresa %}Impreso{% else %}No Impreso{% endif %}
+                                            </span>
+                                            <span class="badge {% if order.orden_procesada %}bg-success{% else %}bg-secondary{% endif %}">
+                                                <i class="fas fa-cog"></i> {% if order.orden_procesada %}Procesado{% else %}No Procesado{% endif %}
+                                            </span>
+                                            <span class="badge {% if order.orden_despachada %}bg-success{% else %}bg-secondary{% endif %}">
+                                                <i class="fas fa-truck"></i> {% if order.orden_despachada %}Despachado{% else %}No Despachado{% endif %}
+                                            </span>
+                                            <span class="badge {% if order.boleta_impresa %}bg-success{% else %}bg-secondary{% endif %}">
+                                                <i class="fas fa-file-pdf"></i> {% if order.boleta_impresa %}Boleta Impresa{% else %}Boleta No Impresa{% endif %}
+                                            </span>
                                         </div>
                                     </td>
                                     <td>
-                                        <p class="text-xs font-weight-bold mb-0">{{ order.shipping_type_label|default:"-" }}</p>
-                                        <p class="text-xs text-secondary mb-0">{{ order.shipping_zone_label|default:"-" }}</p>
-                                    </td>
-                                    <td class="align-middle text-center">
-                                        <span class="text-secondary text-xs font-weight-bold">{{ order.created_date|date:"d/m/Y H:i" }}</span>
-                                    </td>
-                                    <td class="align-middle text-center">
-                                        <span class="text-secondary text-xs font-weight-bold">${{ order.total_amount|floatformat:0 }}</span>
-                                    </td>
-                                    <td class="align-middle text-center">
-                                        {% if order.boleta_number and order.boleta_url %}
-                                            <a href="{{ order.boleta_url }}" target="_blank" class="text-primary text-xs font-weight-bold">
-                                                {{ order.boleta_number }}
-                                                <i class="fas fa-external-link-alt ms-1"></i>
-                                            </a>
-                                        {% else %}
-                                            <span class="text-secondary text-xs">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="align-middle text-center text-sm">
-                                        {% if order.orden_procesada %}
-                                            <span class="badge badge-sm bg-success text-white">Procesada</span>
-                                        {% else %}
-                                            <span class="badge badge-sm bg-info text-white">Nueva</span>
-                                        {% endif %}
-                                        
-                                        {% if order.orden_impresa %}
-                                            <span class="badge badge-sm bg-dark text-white">Impresa</span>
-                                        {% endif %}
-                                        
-                                        {% if order.order_state %}
-                                            <span class="badge badge-sm bg-primary text-white">{{ order.order_state }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="align-middle text-center">
-                                        {% if order.order_id %}
-                                        <a href="{% url 'ripley_order_detail' order_id=order.order_id %}" class="btn btn-link text-secondary mb-0">
-                                            <i class="fa fa-eye text-xs"></i> Ver
+                                        <a href="{% url 'ripley_order_detail' order.orden_ripley %}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-eye"></i> Ver
                                         </a>
-                                        {% else %}
-                                        <span class="text-muted">No disponible</span>
-                                        {% endif %}
                                     </td>
                                 </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="6" class="text-center py-4">
-                                        <p class="text-secondary mb-0">No se encontraron órdenes con los filtros seleccionados</p>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Paginación -->
-                    {% if total_pages > 1 %}
-                    <div class="d-flex justify-content-center mt-4">
-                        <nav aria-label="Navegación de páginas">
-                            <ul class="pagination">
-                                {% if has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Primera">
-                                        <span aria-hidden="true">&laquo;&laquo;</span>
-                                    </a>
-                                </li>
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ previous_page }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Anterior">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <a class="page-link" href="#" aria-label="Primera">
-                                        <span aria-hidden="true">&laquo;&laquo;</span>
-                                    </a>
-                                </li>
-                                <li class="page-item disabled">
-                                    <a class="page-link" href="#" aria-label="Anterior">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                {% endif %}
-                                
-                                {% for i in page_range %}
-                                    {% if page == i %}
-                                        <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
-                                    {% else %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ i }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ i }}</a>
-                                        </li>
-                                    {% endif %}
-                                {% endfor %}
-                                
-                                {% if has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ next_page }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Siguiente">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ total_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Última">
-                                        <span aria-hidden="true">&raquo;&raquo;</span>
-                                    </a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <a class="page-link" href="#" aria-label="Siguiente">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                                <li class="page-item disabled">
-                                    <a class="page-link" href="#" aria-label="Última">
-                                        <span aria-hidden="true">&raquo;&raquo;</span>
-                                    </a>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                    </div>
-                    <div class="text-center mt-2">
-                        <p class="text-sm text-secondary">
-                            Mostrando {{ offset|add:1 }} a {{ offset|add:orders|length }} de {{ total_orders }} órdenes
-                        </p>
-                    </div>
-                    {% endif %}
-                </div>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center">No hay órdenes disponibles</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
+
+            {% if total_pages > 1 %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ previous_page }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in page_range %}
+                            <li class="page-item {% if page_num == page %}active{% endif %}">
+                                <a class="page-link" href="?page={{ page_num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ page_num }}</a>
+                            </li>
+                        {% endfor %}
+                        
+                        {% if has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ next_page }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if processed_filter %}&processed={{ processed_filter }}{% endif %}{% if printed_filter %}&printed={{ printed_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Siguiente</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Modal para órdenes sin boleta -->
-<div class="modal fade" id="noBoletaModal" tabindex="-1" role="dialog" aria-labelledby="noBoletaModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="noBoletaModalLabel">Órdenes sin boleta</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p>Las siguientes órdenes no tienen boleta:</p>
-                <ul id="ordersWithoutBoletaList"></ul>
-                <p>¿Desea imprimir el resto de las boletas de todas formas?</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="printAnywayBtn">Imprimir el resto</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Scripts -->
-{% load static %}
-<script src="{% static 'js/orders_selection.js' %}"></script>
+{% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Script iniciado');
-        const selectAllCheckbox = document.getElementById('select-all-orders');
-        const orderCheckboxes = document.querySelectorAll('.order-checkbox');
-        const printSelectedBtn = document.getElementById('print-selected');
-        const noBoletaModal = $('#noBoletaModal');
-        
-        // Función para mostrar el indicador de carga
-        function showLoadingOverlay() {
-            const overlay = document.createElement('div');
-            overlay.id = 'loadingOverlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.5);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 9999;
-            `;
-            
-            const spinner = document.createElement('div');
-            spinner.style.cssText = `
-                background: white;
-                padding: 20px;
-                border-radius: 5px;
-                text-align: center;
-            `;
-            spinner.innerHTML = `
-                <i class="fas fa-spinner fa-spin fa-2x"></i>
-                <p class="mt-2">Generando PDF...</p>
-            `;
-            
-            overlay.appendChild(spinner);
-            document.body.appendChild(overlay);
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('select-all');
+    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+    const printPickingBtn = document.getElementById('printPickingBtn');
+    const printPackingBtn = document.getElementById('printPackingBtn');
+    const btnPrintBoletas = document.getElementById('btn-print-boletas');
 
-        // Función para ocultar el indicador de carga
-        function hideLoadingOverlay() {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) {
-                overlay.remove();
-            }
-        }
+    // Función para actualizar el estado de los botones
+    function updateButtons() {
+        const selectedOrders = document.querySelectorAll('.order-checkbox:checked');
+        const hasSelection = selectedOrders.length > 0;
+        printPickingBtn.disabled = !hasSelection;
+        printPackingBtn.disabled = !hasSelection;
+        btnPrintBoletas.disabled = !hasSelection;
+    }
 
-        // Función para mostrar el popup de órdenes sin boleta
-        function showNoBoletaPopup(ordersWithoutBoleta) {
-            // Actualizar la lista de órdenes sin boleta
-            const listElement = document.getElementById('ordersWithoutBoletaList');
-            listElement.innerHTML = ordersWithoutBoleta.map(order => `<li>Orden: ${order}</li>`).join('');
-            
-            // Mostrar el modal
-            noBoletaModal.modal('show');
-        }
-
-        // Función para imprimir las boletas seleccionadas
-        function printSelectedBoletas(ignoreNoBoleta = false) {
-            console.log('Iniciando impresión de boletas seleccionadas');
-            const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
-            const ordersWithoutBoleta = [];
-            const boletaUrls = [];
-
-            selectedCheckboxes.forEach(checkbox => {
-                const boletaUrl = checkbox.getAttribute('data-boleta-url');
-                const orderId = checkbox.closest('tr').querySelector('.text-sm').textContent.trim();
-                console.log('Procesando orden:', orderId, 'URL:', boletaUrl);
-                
-                if (!boletaUrl || boletaUrl.trim() === '' || boletaUrl === 'undefined' || boletaUrl === 'null') {
-                    ordersWithoutBoleta.push(orderId);
-                } else {
-                    boletaUrls.push(boletaUrl);
-                }
+    // Manejar selección de todas las órdenes
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
             });
-
-            console.log('URLs de boletas encontradas:', boletaUrls);
-            console.log('Órdenes sin boleta:', ordersWithoutBoleta);
-
-            if (boletaUrls.length === 0) {
-                alert('No hay boletas seleccionadas para imprimir.');
-                return;
-            }
-
-            if (ordersWithoutBoleta.length > 0 && !ignoreNoBoleta) {
-                showNoBoletaPopup(ordersWithoutBoleta);
-                return;
-            }
-
-            // Mostrar indicador de carga
-            showLoadingOverlay();
-            
-            // Obtener el token CSRF
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            
-            // Enviar las URLs al backend para generar el PDF combinado
-            console.log('Enviando URLs al servidor:', boletaUrls);
-            
-            fetch('{% url "print_multiple_boletas" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    boleta_urls: boletaUrls
-                })
-            })
-            .then(response => {
-                console.log('Respuesta del servidor:', response);
-                console.log('Status:', response.status);
-                console.log('Headers:', response.headers);
-                
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        console.error('Error en la respuesta:', data);
-                        throw new Error(data.error || `Error HTTP: ${response.status}`);
-                    });
-                }
-                
-                // Verificar que la respuesta sea un PDF
-                const contentType = response.headers.get('content-type');
-                console.log('Content-Type:', contentType);
-                
-                if (!contentType || !contentType.includes('application/pdf')) {
-                    throw new Error('La respuesta no es un PDF válido');
-                }
-                
-                return response.blob();
-            })
-            .then(blob => {
-                // Crear URL del blob y abrir en nueva pestaña
-                const url = window.URL.createObjectURL(blob);
-                window.open(url, '_blank');
-                hideLoadingOverlay();
-            })
-            .catch(error => {
-                console.error('Error al procesar las boletas:', error);
-                alert('Error al procesar las boletas: ' + error.message);
-                hideLoadingOverlay();
-            });
-        }
-
-        // Manejar selección de todas las órdenes
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function() {
-                console.log('Cambio en selección de todas las órdenes:', this.checked);
-                const isChecked = this.checked;
-                orderCheckboxes.forEach(checkbox => {
-                    checkbox.checked = isChecked;
-                });
-                updatePrintButton();
-            });
-        }
-
-        // Manejar selección individual
-        orderCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                console.log('Cambio en selección individual');
-                const allChecked = Array.from(orderCheckboxes).every(cb => cb.checked);
-                if (selectAllCheckbox) {
-                    selectAllCheckbox.checked = allChecked;
-                }
-                updatePrintButton();
-            });
+            updateButtons();
         });
+    }
 
-        // Función para actualizar el estado del botón de impresión
-        function updatePrintButton() {
-            const selectedCheckboxes = document.querySelectorAll('.order-checkbox:checked');
-            printSelectedBtn.disabled = selectedCheckboxes.length === 0;
-            console.log('Botón de impresión actualizado:', !printSelectedBtn.disabled);
-        }
-
-        // Manejar impresión de boletas seleccionadas
-        if (printSelectedBtn) {
-            printSelectedBtn.addEventListener('click', function() {
-                console.log('Botón de impresión clickeado');
-                printSelectedBoletas();
-            });
-        }
-
-        // Manejar el botón de imprimir de todas formas
-        document.getElementById('printAnywayBtn').addEventListener('click', function() {
-            console.log('Botón de imprimir de todas formas clickeado');
-            noBoletaModal.modal('hide');
-            printSelectedBoletas(true);
+    // Manejar selección individual
+    orderCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const allChecked = document.querySelectorAll('.order-checkbox:checked').length === orderCheckboxes.length;
+            if (selectAll) {
+                selectAll.checked = allChecked;
+            }
+            updateButtons();
         });
     });
+
+    // Imprimir picking
+    printPickingBtn.addEventListener('click', function() {
+        const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+            .map(checkbox => checkbox.closest('tr').querySelector('td:nth-child(2)').textContent.trim());
+        if (selectedOrders.length > 0) {
+            window.open(`/marketplace/ripley/print-picking/?orders=${selectedOrders.join(',')}`, '_blank');
+        } else {
+            alert('Por favor, seleccione al menos una orden');
+        }
+    });
+
+    // Imprimir packing
+    printPackingBtn.addEventListener('click', function() {
+        const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+            .map(checkbox => checkbox.closest('tr').querySelector('td:nth-child(2)').textContent.trim());
+        if (selectedOrders.length > 0) {
+            window.open(`/marketplace/ripley/print-packing/?orders=${selectedOrders.join(',')}`, '_blank');
+        } else {
+            alert('Por favor, seleccione al menos una orden');
+        }
+    });
+
+    // Función para obtener las URLs de boletas seleccionadas
+    function getSelectedBoletaUrls() {
+        const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+        const urls = [];
+        checkboxes.forEach(cb => {
+            const url = cb.getAttribute('data-boleta-url');
+            if (url && url !== 'None' && url !== '') {
+                urls.push(url);
+            }
+        });
+        return urls;
+    }
+
+    // Imprimir boletas
+    btnPrintBoletas.addEventListener('click', function() {
+        const urls = getSelectedBoletaUrls();
+        if (urls.length === 0) {
+            alert('Selecciona al menos una orden con boleta.');
+            return;
+        }
+        // Abrir la pestaña antes del fetch para evitar bloqueos
+        const win = window.open('', '_blank');
+        fetch('/marketplace/unir-boletas/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({boleta_urls: urls})
+        })
+        .then(res => res.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            win.location.href = url;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al unir las boletas. Por favor, intente nuevamente.');
+        });
+    });
+});
 </script>
 {% endblock %} 

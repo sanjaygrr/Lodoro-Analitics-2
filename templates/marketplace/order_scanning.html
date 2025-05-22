@@ -1,420 +1,386 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Pistolaje de Órdenes | Lodoro Analytics{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header pb-0">
-                    <div class="row">
-                        <div class="col-6">
-                            <h6>Pistolaje de Órdenes</h6>
-                            <p class="text-sm">Escanee el código de la orden y luego los productos</p>
-                        </div>
-                        <div class="col-6 text-end">
-                            <a href="{% url 'home' %}" class="btn btn-outline-primary btn-sm mb-0">Volver al Dashboard</a>
-                        </div>
-                    </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Escáner de Órdenes</h3>
                 </div>
-                
                 <div class="card-body">
-                    <!-- Área de escaneo -->
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-body">
-                                    <form method="post" id="scanForm" autocomplete="off">
-                                        {% csrf_token %}
-                                        {% if order_data %}
-                                            <input type="hidden" name="order_id" value="{{ order_data.order.order_id }}">
-                                        {% endif %}
-                                        <div class="form-group">
-                                            <label for="scanned_code">
-                                                {% if not order_data %}
-                                                    Escanee el código de la orden (subOrderNumber, originOrderNumber o ID)
-                                                {% else %}
-                                                    Escanee el código de barras del producto (EAN, SKU o código interno)
-                                                {% endif %}
-                                            </label>
-                                            <input type="text" class="form-control form-control-lg" id="scanned_code" name="scanned_code" autofocus>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary d-none">Escanear</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Mensajes de estado -->
-                    {% if scan_message %}
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <div class="alert alert-{{ scan_status|default:'info' }} alert-dismissible fade show" role="alert">
-                                <span class="alert-text">{{ scan_message }}</span>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Información de la orden -->
-                    {% if order_data %}
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header pb-0">
-                                    <h6>Información de la Orden - {{ order_data.marketplace|title }}</h6>
-                                </div>
-                                <div class="card-body">
-                                    <ul class="list-group">
-                                        {% if order_data.marketplace == 'paris' %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Número de Orden:</span>
-                                            <span class="badge bg-primary">{{ order_data.order.originOrderNumber }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Sub Orden:</span>
-                                            <span class="badge bg-info">{{ order_data.order.subOrderNumber }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Cliente:</span>
-                                            <span>{{ order_data.order.full_name|default:order_data.order.customer_name }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Documento:</span>
-                                            <span>{{ order_data.order.customer_documentType }} {{ order_data.order.customer_documentNumber }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Dirección:</span>
-                                            <span>{{ order_data.order.full_address }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Ciudad:</span>
-                                            <span>{{ order_data.order.city }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Teléfono:</span>
-                                            <span>{{ order_data.order.phone }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Email:</span>
-                                            <span>{{ order_data.order.email }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Fecha:</span>
-                                            <span>{{ order_data.order.createdAt|date:"d/m/Y H:i" }}</span>
-                                        </li>
-                                        {% if order_data.order.boleta_number %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Boleta Bsale:</span>
-                                            <span class="badge bg-success">
-                                                {% if order_data.order.boleta_url and order_data.order.bsale_document_id %}
-                                                    <a href="{{ order_data.order.boleta_url }}" target="_blank" class="text-white">
-                                                        {{ order_data.order.boleta_number }}
-                                                        <i class="fas fa-external-link-alt ms-1"></i>
-                                                    </a>
-                                                {% else %}
-                                                    {{ order_data.order.boleta_number }}
-                                                {% endif %}
-                                            </span>
-                                        </li>
-                                        {% if order_data.order.bsale_document_id %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>ID Documento Bsale:</span>
-                                            <span class="badge bg-info">
-                                                <a href="{{ order_data.order.boleta_url }}" target="_blank" class="text-white">
-                                                    {{ order_data.order.bsale_document_id }}
-                                                    <i class="fas fa-external-link-alt ms-1"></i>
-                                                </a>
-                                            </span>
-                                        </li>
-                                        {% if order_data.order.bsale_document_total %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Total Bsale:</span>
-                                            <span class="badge bg-info">${{ order_data.order.bsale_document_total|floatformat:0 }}</span>
-                                        </li>
-                                        {% endif %}
-                                        {% endif %}
-                                        {% endif %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Productos (sin IVA):</span>
-                                            <span class="badge bg-secondary">${{ order_data.order.total_sin_iva|default:order_data.order.products_total|floatformat:0 }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>IVA:</span>
-                                            <span class="badge bg-secondary">${{ order_data.order.iva|floatformat:0 }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Despacho:</span>
-                                            <span class="badge bg-secondary">${{ order_data.order.despacho|floatformat:0 }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Total con IVA:</span>
-                                            <span class="badge bg-dark">${{ order_data.order.total_con_iva|default:order_data.order.order_total|floatformat:0 }}</span>
-                                        </li>
-                                        {% elif order_data.marketplace == 'ripley' %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>ID de Orden:</span>
-                                            <span class="badge bg-primary">{{ order_data.order.order_id }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>ID Comercial:</span>
-                                            <span class="badge bg-info">{{ order_data.order.commercial_id }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Cliente:</span>
-                                            <span>{{ order_data.order.full_name|default:"No disponible" }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Zona de Envío:</span>
-                                            <span>{{ order_data.order.shipping_zone_label }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Fecha:</span>
-                                            <span>{{ order_data.order.created_date|date:"d/m/Y H:i" }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Estado:</span>
-                                            <span class="badge bg-warning text-dark">{{ order_data.order.order_state }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Método de Pago:</span>
-                                            <span>{{ order_data.order.payment_type }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Tipo de Envío:</span>
-                                            <span>{{ order_data.order.shipping_type_label }}</span>
-                                        </li>
-                                        {% if order_data.order.boleta_number %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Boleta Bsale:</span>
-                                            <span class="badge bg-success">
-                                                {% if order_data.order.boleta_url and order_data.order.bsale_document_id %}
-                                                    <a href="{{ order_data.order.boleta_url }}" target="_blank" class="text-white">
-                                                        {{ order_data.order.boleta_number }}
-                                                        <i class="fas fa-external-link-alt ms-1"></i>
-                                                    </a>
-                                                {% else %}
-                                                    {{ order_data.order.boleta_number }}
-                                                {% endif %}
-                                            </span>
-                                        </li>
-                                        {% endif %}
-                                        {% if order_data.order.bsale_document_id %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>ID Documento Bsale:</span>
-                                            <span class="badge bg-info">
-                                                <a href="{{ order_data.order.boleta_url }}" target="_blank" class="text-white">
-                                                    {{ order_data.order.bsale_document_id }}
-                                                    <i class="fas fa-external-link-alt ms-1"></i>
-                                                </a>
-                                            </span>
-                                        </li>
-                                        {% if order_data.order.bsale_document_total %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Total Bsale:</span>
-                                            <span class="badge bg-info">${{ order_data.order.bsale_document_total|floatformat:0 }}</span>
-                                        </li>
-                                        {% endif %}
-                                        {% endif %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Productos (sin IVA):</span>
-                                            <span class="badge bg-secondary">${{ order_data.order.productos_sin_iva|default:order_data.order.subtotal_price|floatformat:0 }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>IVA:</span>
-                                            <span class="badge bg-secondary">${{ order_data.order.iva|floatformat:0 }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Despacho:</span>
-                                            <span class="badge bg-secondary">${{ order_data.order.despacho|default:order_data.order.shipping_price|floatformat:0 }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Total con IVA:</span>
-                                            <span class="badge bg-dark">${{ order_data.order.total_con_iva|default:order_data.order.total_price|floatformat:0 }}</span>
-                                        </li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header pb-0">
-                                    <h6>Productos Escaneados</h6>
-                                </div>
-                                <div class="card-body">
-                                    <ul class="list-group">
-                                        {% for item in scanned_items %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>{{ item.name }}</span>
-                                            <span class="badge bg-success">{{ item.time }}</span>
-                                        </li>
-                                        {% empty %}
-                                        <li class="list-group-item text-center">
-                                            <span class="text-muted">No hay productos escaneados aún</span>
-                                        </li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Tabla de productos -->
                     <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header pb-0">
-                                    <h6>Productos de la Orden</h6>
-                                </div>
-                                <div class="card-body px-0 pt-0 pb-2">
-                                    <div class="table-responsive p-0">
-                                        <table class="table align-items-center mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">SKU / Código</th>
-                                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Nombre</th>
-                                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Cantidad</th>
-                                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Precio</th>
-                                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Bsale</th>
-                                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Estado</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for item in order_data.items %}
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex px-2 py-1">
-                                                            <div class="d-flex flex-column justify-content-center">
-                                                                <h6 class="mb-0 text-sm">{{ item.sku }}</h6>
-                                                                {% if item.bsale_code %}
-                                                                <p class="text-xs text-success mb-0">Código Bsale: {{ item.bsale_code }}</p>
-                                                                {% endif %}
-                                                                {% if item.bsale_barcode %}
-                                                                <p class="text-xs text-success mb-0">EAN: {{ item.bsale_barcode }}</p>
-                                                                {% endif %}
-                                                                {% if item.codigo_bsale and item.codigo_bsale != item.bsale_code and item.codigo_bsale != item.sku %}
-                                                                <p class="text-xs text-secondary mb-0">Otro código: {{ item.codigo_bsale }}</p>
-                                                                {% endif %}
-                                                                {% if item.codigo_barras and item.codigo_barras != item.bsale_barcode and item.codigo_barras != item.sku %}
-                                                                <p class="text-xs text-secondary mb-0">Otro EAN: {{ item.codigo_barras }}</p>
-                                                                {% endif %}
-                                                                {% if item.bsale_variant_id %}
-                                                                <p class="text-xs text-info mb-0">ID Variante: {{ item.bsale_variant_id }}</p>
-                                                                {% endif %}
-                                                                {% if item.bsale_product_id %}
-                                                                <p class="text-xs text-info mb-0">ID Producto: {{ item.bsale_product_id }}</p>
-                                                                {% endif %}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        {% if order_data.marketplace == 'paris' %}
-                                                        <p class="text-xs font-weight-bold mb-0">{{ item.name }}</p>
-                                                        {% if item.bsale_product_name and item.name != item.bsale_product_name %}
-                                                        <p class="text-xs text-secondary mb-0">{{ item.bsale_product_name }}</p>
-                                                        {% endif %}
-                                                        {% if item.es_despacho %}
-                                                        <span class="badge badge-sm bg-warning text-dark">Despacho</span>
-                                                        {% endif %}
-                                                        {% else %}
-                                                        <p class="text-xs font-weight-bold mb-0">{{ item.product_name }}</p>
-                                                        {% if item.bsale_product_name and item.product_name != item.bsale_product_name %}
-                                                        <p class="text-xs text-secondary mb-0">{{ item.bsale_product_name }}</p>
-                                                        {% endif %}
-                                                        {% endif %}
-                                                    </td>
-                                                    <td class="align-middle text-center">
-                                                        <span class="text-secondary text-xs font-weight-bold">{{ item.quantity }}</span>
-                                                    </td>
-                                                    <td class="align-middle text-center">
-                                                        {% if order_data.marketplace == 'paris' %}
-                                                        <span class="text-secondary text-xs font-weight-bold">
-                                                            ${{ item.priceAfterDiscounts|floatformat:0 }}
-                                                            {% if item.precio_sin_iva %}
-                                                            <br><small>(Sin IVA: ${{ item.precio_sin_iva|floatformat:0 }})</small>
-                                                            {% endif %}
-                                                            {% if item.bsale_price %}
-                                                            <br><small class="text-success">(Bsale: ${{ item.bsale_price|floatformat:0 }})</small>
-                                                            {% endif %}
-                                                        </span>
-                                                        {% else %}
-                                                        <span class="text-secondary text-xs font-weight-bold">
-                                                            ${{ item.total_price|floatformat:0 }}
-                                                            {% if item.total_price_con_iva %}
-                                                            <br><small>(Con IVA: ${{ item.total_price_con_iva|floatformat:0 }})</small>
-                                                            {% endif %}
-                                                            {% if item.bsale_price %}
-                                                            <br><small class="text-success">(Bsale: ${{ item.bsale_price|floatformat:0 }})</small>
-                                                            {% endif %}
-                                                        </span>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td class="align-middle text-center">
-                                                        {% if item.bsale_variant_id %}
-                                                        <span class="badge badge-sm bg-info text-white">
-                                                            {% if item.bsale_product_id %}
-                                                            <a href="https://app.bsale.cl/4/products/{{ item.bsale_product_id }}" target="_blank" class="text-white">
-                                                                {{ item.bsale_variant_id }}
-                                                                <i class="fas fa-external-link-alt ms-1"></i>
-                                                            </a>
-                                                            {% else %}
-                                                            {{ item.bsale_variant_id }}
-                                                            {% endif %}
-                                                        </span>
-                                                        {% else %}
-                                                        <span class="badge badge-sm bg-secondary text-white">No vinculado</span>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td class="align-middle text-center text-sm">
-                                                        {% if item.scanned %}
-                                                            <span class="badge badge-sm bg-success text-white">Escaneado</span>
-                                                        {% else %}
-                                                            <span class="badge badge-sm bg-warning text-white">Pendiente</span>
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% empty %}
-                                                <tr>
-                                                    <td colspan="6" class="text-center py-4">
-                                                        <p class="text-secondary mb-0">No hay productos en esta orden</p>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="orderNumber">Número de Orden</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="orderNumber" placeholder="Escanee o ingrese el número de orden">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="button" id="scanButton">
+                                            <i class="fas fa-barcode"></i> Escanear
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {% endif %}
+
+                    <div id="orderResult" class="mt-4" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">Información de la Orden</h4>
+                            </div>
+                            <div class="card-body">
+                                <div id="orderDetails"></div>
+                                
+                                <!-- Nuevo escáner de EAN -->
+                                <div class="ean-scanner mt-4">
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h5 class="card-title mb-0">Escáner de Producto</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-group">
+                                                <label for="eanInput">EAN del Producto</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="eanInput" placeholder="Escanee el código de barras del producto">
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-info" type="button" id="scanEanButton">
+                                                            <i class="fas fa-barcode"></i> Escanear EAN
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="eanResult" class="mt-3" style="display: none;">
+                                                <div class="alert" role="alert"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Enfocar automáticamente el campo de escaneo
-        document.getElementById('scanned_code').focus();
-        
-        // Enviar el formulario automáticamente al escanear
-        document.getElementById('scanForm').addEventListener('submit', function() {
-            document.querySelector('.btn-primary').classList.add('disabled');
-        });
-        
-        // Establecer un temporizador para volver a enfocar el campo de escaneo
-        setInterval(function() {
-            document.getElementById('scanned_code').focus();
+document.addEventListener('DOMContentLoaded', function() {
+    const orderNumberInput = document.getElementById('orderNumber');
+    const scanButton = document.getElementById('scanButton');
+    const orderResult = document.getElementById('orderResult');
+    const orderDetails = document.getElementById('orderDetails');
+    const eanInput = document.getElementById('eanInput');
+    const scanEanButton = document.getElementById('scanEanButton');
+    const eanResult = document.getElementById('eanResult');
+    const eanAlert = eanResult.querySelector('.alert');
+    
+    let currentOrderInfo = null;
+
+    // Función para buscar la orden
+    async function searchOrder(orderNumber) {
+        try {
+            const response = await fetch(`/marketplace/scan-order/?order_number=${orderNumber}`);
+            const data = await response.json();
+
+            if (data.success) {
+                currentOrderInfo = data.order_info;
+                displayOrderInfo(data.order_info);
+                // Mostrar el escáner de EAN
+                document.querySelector('.ean-scanner').style.display = 'block';
+                // Enfocar el input de EAN
+                eanInput.focus();
+            } else {
+                showError(data.error || 'Error al buscar la orden');
+            }
+        } catch (error) {
+            showError('Error al conectar con el servidor');
+        }
+    }
+
+    // Función para verificar el EAN
+    function verifyEan(ean) {
+        if (!currentOrderInfo) {
+            showEanError('Primero debe escanear una orden');
+            return;
+        }
+
+        let found = false;
+        let foundProduct = null;
+        let foundMarketplace = null;
+
+        // Buscar el EAN en todos los marketplaces
+        for (const [marketplace, info] of Object.entries(currentOrderInfo)) {
+            for (const producto of info.productos) {
+                // Dividir los EANs por comas y verificar cada uno
+                const eans = producto.ean_bsale.split(',').map(e => e.trim());
+                if (eans.includes(ean)) {
+                    found = true;
+                    foundProduct = producto;
+                    foundMarketplace = marketplace;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+
+        if (found) {
+            showEanSuccess(`¡Producto encontrado! ${foundProduct.producto} (${foundMarketplace.toUpperCase()})`);
+            // Aquí puedes agregar la lógica para procesar la orden
+            // Por ejemplo, marcar el producto como escaneado
+            foundProduct.scanned = true;
+            // Llamar al backend para marcar la orden como procesada
+            marcarOrdenProcesada(foundMarketplace, currentOrderInfo[foundMarketplace].order_number);
+            // Actualizar la visualización
+            displayOrderInfo(currentOrderInfo);
+        } else {
+            showEanError('EAN no encontrado en la orden');
+        }
+    }
+
+    // Función para mostrar éxito en el escáner de EAN
+    function showEanSuccess(message) {
+        eanAlert.className = 'alert alert-success';
+        eanAlert.textContent = message;
+        eanResult.style.display = 'block';
+        // Limpiar el input después de 2 segundos
+        setTimeout(() => {
+            eanInput.value = '';
+            eanInput.focus();
         }, 2000);
+    }
+
+    // Función para mostrar error en el escáner de EAN
+    function showEanError(message) {
+        eanAlert.className = 'alert alert-danger';
+        eanAlert.textContent = message;
+        eanResult.style.display = 'block';
+        // Limpiar el input después de 2 segundos
+        setTimeout(() => {
+            eanInput.value = '';
+            eanInput.focus();
+        }, 2000);
+    }
+
+    // Función para mostrar la información de la orden
+    function displayOrderInfo(orderInfo) {
+        orderResult.style.display = 'block';
+        let html = '';
+
+        for (const [marketplace, info] of Object.entries(orderInfo)) {
+            // Asignar campos según el marketplace
+            let numeroOrden = '', cliente = '', numeroBoleta = '', urlBoleta = '', estado = '', costoTotal = '', fechaCreacion = '', productos = [];
+            if (marketplace === 'paris') {
+                numeroOrden = info.order_number || '';
+                cliente = info.cliente || '';
+                numeroBoleta = info.numero_boleta || '';
+                urlBoleta = info.url_boleta || '';
+                estado = info.estado_despacho || '';
+                costoTotal = info.costo_total ? info.costo_total.toLocaleString() : '0';
+                fechaCreacion = info.fecha_creacion ? new Date(info.fecha_creacion).toLocaleString() : '';
+                productos = info.productos || [];
+            } else if (marketplace === 'ripley') {
+                numeroOrden = info.order_number || '';
+                cliente = info.cliente || '';
+                numeroBoleta = info.numero_boleta || '';
+                urlBoleta = info.url_boleta || '';
+                estado = info.estado_despacho || '';
+                costoTotal = info.costo_total ? info.costo_total.toLocaleString() : '0';
+                fechaCreacion = info.fecha_creacion ? new Date(info.fecha_creacion).toLocaleString() : '';
+                productos = info.productos || [];
+            } else if (marketplace === 'falabella') {
+                numeroOrden = info.order_number || '';
+                cliente = info.cliente || '';
+                numeroBoleta = info.numero_boleta || '';
+                urlBoleta = info.url_boleta || '';
+                estado = info.estado_despacho || '';
+                costoTotal = info.costo_total ? info.costo_total.toLocaleString() : '0';
+                fechaCreacion = info.fecha_creacion ? new Date(info.fecha_creacion).toLocaleString() : '';
+                productos = info.productos || [];
+            } else if (marketplace === 'mercadolibre') {
+                numeroOrden = info.order_number || '';
+                cliente = info.cliente || '';
+                numeroBoleta = info.numero_boleta || '';
+                urlBoleta = info.url_boleta || '';
+                estado = info.estado_despacho || info.estado_orden || '';
+                costoTotal = info.costo_total ? info.costo_total.toLocaleString() : '0';
+                fechaCreacion = info.fecha_creacion ? new Date(info.fecha_creacion).toLocaleString() : '';
+                productos = info.productos || [];
+            }
+
+            const estadoClass = estado === 'NUEVA' ? 'bg-primary' : 
+                                estado === 'PROCESADA' ? 'bg-info' : 
+                                estado === 'ENVIADA' ? 'bg-success' : 'bg-danger';
+
+            html += `
+            <div class="marketplace-info mb-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="text-primary mb-0">${marketplace.toUpperCase()}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Número de Orden:</strong> ${numeroOrden}</p>
+                                <p><strong>Cliente:</strong> ${cliente}</p>
+                                <p><strong>Número de Boleta:</strong> 
+                                    ${numeroBoleta ? 
+                                        `<a href="${urlBoleta}" target="_blank" class="btn btn-sm btn-info">
+                                            <i class="fas fa-file-pdf"></i> ${numeroBoleta}
+                                        </a>` : 
+                                        '<span class="badge bg-warning">Sin boleta</span>'}
+                                </p>
+                                <p><strong>Estado:</strong> 
+                                    <span class="badge ${estadoClass}">${estado}</span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Costo Total:</strong> <span class="h4 text-primary">$${costoTotal}</span></p>
+                                <p><strong>Fecha Creación:</strong> ${fechaCreacion}</p>
+                            </div>
+                        </div>
+                        <div class="products-info mt-3">
+                            <h6>Productos:</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>SKU BSale</th>
+                                            <th>EAN</th>
+                                            <th>Cantidad</th>
+                                            <th>Precio Unitario</th>
+                                            <th>Subtotal</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${(productos && productos.length > 0) ? productos.map(producto => `
+                                            <tr class="${producto.scanned ? 'table-success' : ''}">
+                                                <td>${producto.producto || 'SIN DATO'}</td>
+                                                <td>${producto.sku_bsale || 'SIN SKU'}</td>
+                                                <td>${producto.ean_bsale || 'SIN EAN'}</td>
+                                                <td>${producto.cantidad || '0'}</td>
+                                                <td>$${producto.precio ? producto.precio.toLocaleString() : '0'}</td>
+                                                <td>$${producto.subtotal ? producto.subtotal.toLocaleString() : '0'}</td>
+                                                <td>
+                                                    ${producto.scanned ? 
+                                                        '<span class="badge bg-success"><i class="fas fa-check"></i> Escaneado</span>' : 
+                                                        '<span class="badge bg-warning"><i class="fas fa-clock"></i> Pendiente</span>'}
+                                                </td>
+                                            </tr>
+                                        `).join('') : `<tr><td colspan="7" class="text-center">Sin productos</td></tr>`}
+                                        <tr class="table-primary">
+                                            <td colspan="5" class="text-end"><strong>Total Boleta:</strong></td>
+                                            <td colspan="2"><strong>$${costoTotal}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+        orderDetails.innerHTML = html;
+    }
+
+    // Función para mostrar errores
+    function showError(message) {
+        orderResult.style.display = 'block';
+        orderDetails.innerHTML = `
+            <div class="alert alert-danger">
+                ${message}
+            </div>
+        `;
+    }
+
+    // Evento para el botón de escanear orden
+    scanButton.addEventListener('click', function() {
+        const orderNumber = orderNumberInput.value.trim();
+        if (orderNumber) {
+            searchOrder(orderNumber);
+        }
     });
+
+    // Evento para el botón de escanear EAN
+    scanEanButton.addEventListener('click', function() {
+        const ean = eanInput.value.trim();
+        if (ean) {
+            verifyEan(ean);
+        }
+    });
+
+    // Evento para la tecla Enter en el input de orden
+    orderNumberInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const orderNumber = orderNumberInput.value.trim();
+            if (orderNumber) {
+                searchOrder(orderNumber);
+            }
+        }
+    });
+
+    // Evento para la tecla Enter en el input de EAN
+    eanInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const ean = eanInput.value.trim();
+            if (ean) {
+                verifyEan(ean);
+            }
+        }
+    });
+
+    // Enfocar el input de orden al cargar la página
+    orderNumberInput.focus();
+
+    // Nueva función para marcar la orden como procesada en el backend
+    function marcarOrdenProcesada(marketplace, orderNumber) {
+        fetch('/marketplace/procesar-orden/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                marketplace: marketplace,
+                order_number: orderNumber
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                showEanError('No se pudo marcar la orden como procesada: ' + (data.error || 'Error desconocido'));
+            }
+        })
+        .catch(() => {
+            showEanError('Error de red al marcar la orden como procesada');
+        });
+    }
+
+    // Función auxiliar para obtener el CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
 </script>
 {% endblock %}

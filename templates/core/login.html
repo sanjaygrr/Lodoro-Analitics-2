@@ -1,28 +1,22 @@
 {% extends 'base.html' %}
-{% load django_bootstrap5 %}
 
-{% block title %}Iniciar Sesión - Lodoro Analytics{% endblock %}
+{% block title %}Iniciar Sesión{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6 col-lg-4">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white text-center">
-                <h4 class="mb-0">Lodoro Analytics</h4>
-            </div>
-            <div class="card-body">
-                <h5 class="card-title text-center mb-4">Iniciar Sesión</h5>
-                
-                <form method="post">
-                    {% csrf_token %}
-                    {% bootstrap_form form %}
-                    
-                    <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt me-2"></i> Iniciar Sesión
-                        </button>
-                    </div>
-                </form>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Iniciar Sesión</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

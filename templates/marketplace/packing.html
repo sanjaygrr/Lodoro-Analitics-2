@@ -1,0 +1,180 @@
+{% load marketplace_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Packing - Orden {{ order.orden_paris }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+            color: #333;
+        }
+        .order-info {
+            margin-bottom: 30px;
+            border: 2px solid #333;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .order-info h2 {
+            font-size: 20px;
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .order-info p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .order-info .label {
+            font-weight: bold;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 12px;
+            text-align: left;
+            font-size: 16px;
+        }
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        .totals {
+            margin-top: 30px;
+            text-align: right;
+            font-size: 18px;
+        }
+        .totals p {
+            margin: 10px 0;
+        }
+        .totals .label {
+            font-weight: bold;
+            color: #666;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .barcode {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .barcode img {
+            max-width: 180px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .barcode-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+            .order-info {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% for order in orders %}
+    <div class="header">
+        <h1>Documento de Packing</h1>
+        <p>Fecha: {{ fecha_actual|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <div class="order-info">
+        <h2>Orden Paris: {{ order.orden_paris }}</h2>
+        
+        <div class="barcode">
+            <p><strong>Código de Orden:</strong></p>
+            {% if order.barcode %}
+                <img src="data:image/png;base64,{{ order.barcode }}" alt="Código de barras" style="width: 420px; height: 90px; object-fit: contain; display: block; margin: 0 auto;" />
+                <div style="text-align: center; font-size: 20px; margin-top: 8px;"><strong>{{ order.orden_paris }}</strong></div>
+            {% endif %}
+        </div>
+
+        <p><span class="label">Cliente:</span> {{ order.cliente }}</p>
+        <p><span class="label">Dirección:</span> {{ order.direccion }}</p>
+        <p><span class="label">Teléfono:</span> {{ order.telefono }}</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>SKU</th>
+                    <th>EAN</th>
+                    <th>Cantidad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in order.productos %}
+                <tr>
+                    <td>{{ producto.producto }}</td>
+                    <td>{{ producto.sku_bsale }}</td>
+                    <td>{{ producto.ean_bsale }}</td>
+                    <td>{{ producto.cantidad }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <p><span class="label">Subtotal:</span> ${{ order.costo_total|floatformat:0 }}</p>
+            <p><span class="label">IVA (19%):</span> ${{ order.costo_total|multiply:0.19|floatformat:0 }}</p>
+            <p><span class="label">Total:</span> ${{ order.costo_total|multiply:1.19|floatformat:0 }}</p>
+        </div>
+
+        <div class="footer">
+            <p>Documento generado automáticamente por Lodoro Analytics</p>
+            <p>Este documento debe ser pegado en el empaque de la orden</p>
+        </div>
+        {% if not forloop.last %}
+        <div style="page-break-after: always;"></div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()">Imprimir</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html> 

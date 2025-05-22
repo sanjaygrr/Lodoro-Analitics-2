@@ -1,0 +1,205 @@
+{% load marketplace_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Packing - Órdenes Mercado Libre</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            font-size: 12px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+        }
+        .order-section {
+            margin-bottom: 30px;
+            page-break-after: always;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .order-section:last-child {
+            page-break-after: avoid;
+        }
+        .order-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 8px;
+            background-color: #f5f5f5;
+            border-radius: 3px;
+        }
+        .order-info {
+            text-align: center;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .order-info h2 {
+            font-size: 16px;
+            margin: 0 0 10px 0;
+        }
+        .order-info p {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        .barcode-section {
+            text-align: center;
+            margin: 15px auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .barcode-section img {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 5px;
+        }
+        .barcode-section p {
+            margin: 5px 0;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .order-details {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 11px;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 6px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        .total-section {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #f5f5f5;
+            border-radius: 3px;
+            text-align: right;
+            font-size: 11px;
+        }
+        .total-section p {
+            margin: 2px 0;
+        }
+        .total-section .label {
+            font-weight: bold;
+            color: #666;
+        }
+        .footer {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+            .order-section {
+                page-break-after: always;
+                border: none;
+            }
+            .order-section:last-child {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Documento de Packing</h1>
+        <p>Fecha: {{ fecha_actual|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    {% for order in orders %}
+    <div class="order-section">
+        <div class="order-header">
+            <div class="order-info">
+                <h2>Orden {{ order.orden_mercadolibre }}</h2>
+                <p><strong>Cliente:</strong> {{ order.cliente }}</p>
+                <p><strong>Dirección:</strong> {{ order.direccion }}</p>
+                <p><strong>Ciudad:</strong> {{ order.ciudad }}</p>
+            </div>
+            <div class="barcode-section">
+                {% if order.barcode %}
+                <img src="data:image/png;base64,{{ order.barcode }}" alt="Código de barras">
+                <p>{{ order.orden_mercadolibre }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="order-details">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>SKU</th>
+                        <th>EAN</th>
+                        <th>Cant.</th>
+                        <th>P.Unit.</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in order.productos %}
+                    <tr>
+                        <td>{{ producto.producto }}</td>
+                        <td>{{ producto.sku_bsale }}</td>
+                        <td>{{ producto.ean_bsale }}</td>
+                        <td>{{ producto.cantidad }}</td>
+                        <td>${{ producto.precio|floatformat:0 }}</td>
+                        <td>${{ producto.precio|multiply:producto.cantidad|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="total-section">
+                <p><span class="label">Subtotal:</span> ${{ order.costo_neto|floatformat:0 }}</p>
+                <p><span class="label">IVA:</span> ${{ order.iva|floatformat:0 }}</p>
+                <p><span class="label">Total:</span> ${{ order.costo_total|floatformat:0 }}</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Documento generado el {{ fecha_actual|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()">Imprimir</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html> 

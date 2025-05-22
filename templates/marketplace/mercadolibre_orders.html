@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Órdenes Mercado Libre{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Órdenes Mercado Libre</h2>
+        <div>
+            <button id="printPickingBtn" class="btn btn-primary me-2" disabled>
+                <i class="fas fa-print"></i> Imprimir Picking
+            </button>
+            <button id="printPackingBtn" class="btn btn-success" disabled>
+                <i class="fas fa-box"></i> Imprimir Packing
+            </button>
+            <button id="printBoletasBtn" class="btn btn-warning" disabled>
+                <i class="fas fa-file-invoice"></i> Imprimir Boletas
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <!-- Filtro de Estado -->
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Estado</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">Todos</option>
+                        {% for option in status_options %}
+                        <option value="{{ option.value }}" {% if status_filter == option.value %}selected{% endif %}>
+                            {{ option.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro de Fecha Desde -->
+                <div class="col-md-3">
+                    <label for="date_from" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+
+                <!-- Filtro de Fecha Hasta -->
+                <div class="col-md-3">
+                    <label for="date_to" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+
+                <!-- Búsqueda -->
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" placeholder="Buscar...">
+                </div>
+
+                <!-- Botones -->
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                    <a href="{% url 'mercadolibre_orders' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumen de Estadísticas -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Órdenes Nuevas</h5>
+                            <h2 class="card-text">{{ stats.nuevas }}</h2>
+                            <p class="card-text">Sin procesar ni imprimir</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Por Procesar</h5>
+                            <h2 class="card-text">{{ stats.por_procesar }}</h2>
+                            <p class="card-text">Impresas sin procesar</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Por Despachar</h5>
+                            <h2 class="card-text">{{ stats.por_despachar }}</h2>
+                            <p class="card-text">Procesadas sin despachar</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Despachadas</h5>
+                            <h2 class="card-text">{{ stats.despachadas }}</h2>
+                            <p class="card-text">Total de órdenes completadas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Órdenes</h5>
+                    <p class="card-text display-6">{{ total_orders }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Monto Total</h5>
+                    <p class="card-text display-6">${{ total_amount|floatformat:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Órdenes -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="selectAll" class="form-check-input">
+                            </th>
+                            <th>ID Mercado Libre</th>
+                            <th>Cliente</th>
+                            <th>Producto</th>
+                            <th>Boleta</th>
+                            <th>Total</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Estados</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input order-checkbox" value="{{ order.orden_mercadolibre }}">
+                            </td>
+                            <td>{{ order.orden_mercadolibre }}</td>
+                            <td>{{ order.cliente }}</td>
+                            <td>{{ order.productos }}</td>
+                            <td>
+                                {% if order.numero_boleta %}
+                                    <a href="{{ order.url_boleta }}" target="_blank">{{ order.numero_boleta }}</a>
+                                {% else %}
+                                    Sin boleta
+                                {% endif %}
+                            </td>
+                            <td>${{ order.costo_total|floatformat:2 }}</td>
+                            <td>{{ order.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge {% if order.estado_orden == 'NUEVA' %}bg-primary{% elif order.estado_orden == 'PROCESADA' %}bg-info{% elif order.estado_orden == 'ENVIADA' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ order.estado_orden }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column gap-1">
+                                    <span class="badge {% if order.orden_impresa %}bg-success{% else %}bg-secondary{% endif %}">
+                                        <i class="fas fa-print"></i> {% if order.orden_impresa %}Impreso{% else %}No Impreso{% endif %}
+                                    </span>
+                                    <span class="badge {% if order.orden_procesada %}bg-success{% else %}bg-secondary{% endif %}">
+                                        <i class="fas fa-cog"></i> {% if order.orden_procesada %}Procesado{% else %}No Procesado{% endif %}
+                                    </span>
+                                    <span class="badge {% if order.orden_despachada %}bg-success{% else %}bg-secondary{% endif %}">
+                                        <i class="fas fa-truck"></i> {% if order.orden_despachada %}Despachado{% else %}No Despachado{% endif %}
+                                    </span>
+                                    <span class="badge {% if order.boleta_impresa %}bg-success{% else %}bg-secondary{% endif %}">
+                                        <i class="fas fa-file-pdf"></i> {% if order.boleta_impresa %}Boleta Impresa{% else %}Boleta No Impresa{% endif %}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="{% url 'mercadolibre_order_detail' order.orden_mercadolibre %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i> Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center">No se encontraron órdenes</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if total_pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ previous_page }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in page_range %}
+                    <li class="page-item {% if page_num == page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ page_num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% endfor %}
+
+                    {% if has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ next_page }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Manejar selección de todas las órdenes
+        const selectAll = document.getElementById('selectAll');
+        const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+        const printPickingBtn = document.getElementById('printPickingBtn');
+        const printPackingBtn = document.getElementById('printPackingBtn');
+        const printBoletasBtn = document.getElementById('printBoletasBtn');
+
+        function updatePrintButtons() {
+            const selectedOrders = document.querySelectorAll('.order-checkbox:checked');
+            printPickingBtn.disabled = selectedOrders.length === 0;
+            printPackingBtn.disabled = selectedOrders.length === 0;
+            printBoletasBtn.disabled = selectedOrders.length === 0;
+        }
+
+        selectAll.addEventListener('change', function() {
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updatePrintButtons();
+        });
+
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allChecked = Array.from(orderCheckboxes).every(cb => cb.checked);
+                selectAll.checked = allChecked;
+                updatePrintButtons();
+            });
+        });
+
+        // Manejar impresión de picking
+        printPickingBtn.addEventListener('click', function() {
+            const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedOrders.length > 0) {
+                const url = `{% url 'print_mercadolibre_picking' %}?orders=${selectedOrders.join(',')}`;
+                window.open(url, '_blank');
+            }
+        });
+
+        // Manejar impresión de packing
+        printPackingBtn.addEventListener('click', function() {
+            const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedOrders.length > 0) {
+                const url = `{% url 'print_mercadolibre_packing' %}?orders=${selectedOrders.join(',')}`;
+                window.open(url, '_blank');
+            }
+        });
+
+        // Manejar impresión de boletas
+        printBoletasBtn.addEventListener('click', function() {
+            const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedOrders.length > 0) {
+                const boletaUrls = selectedOrders.map(orderId => {
+                    const order = orders.find(o => o.orden_mercadolibre === orderId);
+                    return order ? order.url_boleta : null;
+                }).filter(url => url !== null && url !== '');
+
+                if (boletaUrls.length > 0) {
+                    fetch('/marketplace/unir-boletas/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ boleta_urls: boletaUrls })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.pdf_url) {
+                            window.open(data.pdf_url, '_blank');
+                        } else {
+                            alert('Error al generar el PDF de boletas');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al procesar las boletas');
+                    });
+                } else {
+                    alert('No hay boletas disponibles para las órdenes seleccionadas');
+                }
+            } else {
+                alert('Por favor seleccione al menos una orden');
+            }
+        });
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %} 

@@ -1,12 +1,17 @@
-{% load django_bootstrap5 %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Lodoro Analytics{% endblock %}</title>
-    {% bootstrap_css %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
     <style>
         body {
             overflow-x: hidden;
@@ -574,6 +579,10 @@
             font-weight: 600;
             border-left: 3px solid #f7fafc;
         }
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -584,7 +593,7 @@
     <!-- Sidebar -->
     <nav id="sidebar" class="sidebar">
         <div class="sidebar-header">
-            <h3>Lodoro Analytics</h3>
+            <img src="{% static 'img/logo.svg' %}" alt="Lodoro Analytics" class="img-fluid">
             <button type="button" id="sidebarCollapseClose" class="navbar-btn">
                 <i class="fas fa-times"></i>
             </button>
@@ -601,7 +610,7 @@
                 <i class="fas fa-chevron-down ms-auto"></i>
             </a>
             <div class="sidebar-dropdown-menu" id="principal-dropdown">
-                <a href="{% url 'home' %}" class="{% if request.path == '/' %}active{% endif %}">
+                <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">
                     <i class="fas fa-home fa-fw me-2"></i> Inicio
                 </a>
                 <a href="{% url 'order_scanning' %}" class="{% if 'scanning' in request.path %}active{% endif %}">
@@ -617,56 +626,40 @@
                 <i class="fas fa-chevron-down ms-auto"></i>
             </a>
             <div class="sidebar-dropdown-menu" id="ordenes-dropdown">
-                <a href="{% url 'paris_orders' %}" class="{% if 'marketplace/paris' in request.path %}active{% endif %}">
-                    <i class="fas fa-shopping-bag fa-fw me-2"></i> Paris
+                <a href="{% url 'paris_orders' %}" class="{% if 'paris' in request.path %}active{% endif %}">
+                    <i class="fas fa-store fa-fw me-2"></i> Paris
                 </a>
-                <a href="{% url 'ripley_orders' %}" class="{% if 'marketplace/ripley' in request.path %}active{% endif %}">
-                    <i class="fas fa-shopping-cart fa-fw me-2"></i> Ripley
+                <a href="{% url 'ripley_orders' %}" class="{% if 'ripley' in request.path %}active{% endif %}">
+                    <i class="fas fa-store fa-fw me-2"></i> Ripley
                 </a>
-                <a href="{% url 'orders_summary' %}" class="{% if 'marketplace/summary' in request.path %}active{% endif %}">
-                    <i class="fas fa-chart-pie fa-fw me-2"></i> Resumen
+                <a href="{% url 'falabella_orders' %}" class="{% if 'falabella' in request.path %}active{% endif %}">
+                    <i class="fas fa-store fa-fw me-2"></i> Falabella
                 </a>
-            </div>
-        </div>
-        
-        <!-- Sección Análisis como Dropdown -->
-        <div class="sidebar-item-container">
-            <a href="javascript:void(0)" class="sidebar-dropdown-toggle" data-target="analisis-dropdown">
-                <i class="fas fa-chart-line fa-fw me-2"></i> ANÁLISIS
-                <i class="fas fa-chevron-down ms-auto"></i>
-            </a>
-            <div class="sidebar-dropdown-menu" id="analisis-dropdown">
-                <a href="{% url 'sales_dashboard' %}" class="{% if 'analytics/dashboard' in request.path %}active{% endif %}">
-                    <i class="fas fa-chart-line fa-fw me-2"></i> Dashboard
-                </a>
-                <a href="{% url 'product_performance' %}" class="{% if 'analytics/products' in request.path %}active{% endif %}">
-                    <i class="fas fa-box fa-fw me-2"></i> Productos
-                </a>
-                <a href="{% url 'saved_analytics' %}" class="{% if 'analytics/saved' in request.path %}active{% endif %}">
-                    <i class="fas fa-save fa-fw me-2"></i> Guardados
+                <a href="{% url 'mercadolibre_orders' %}" class="{% if 'mercadolibre' in request.path %}active{% endif %}">
+                    <i class="fas fa-store fa-fw me-2"></i> Mercado Libre
                 </a>
             </div>
         </div>
         
-        <!-- Sección Sistema como Dropdown -->
+        <!-- Sección Configuración -->
         <div class="sidebar-item-container">
-            <a href="javascript:void(0)" class="sidebar-dropdown-toggle" data-target="sistema-dropdown">
-                <i class="fas fa-cogs fa-fw me-2"></i> SISTEMA
-                <i class="fas fa-chevron-down ms-auto"></i>
+            <a href="{% url 'settings' %}" class="{% if 'settings' in request.path %}active{% endif %}">
+                <i class="fas fa-cog fa-fw me-2"></i> CONFIGURACIÓN
             </a>
-            <div class="sidebar-dropdown-menu" id="sistema-dropdown">
-                <a href="{% url 'api_status' %}" class="{% if 'api-status' in request.path %}active{% endif %}">
-                    <i class="fas fa-plug fa-fw me-2"></i> Estado APIs
-                </a>
-                <a href="{% url 'api_config_list' %}" class="{% if 'api-configs' in request.path %}active{% endif %}">
-                    <i class="fas fa-cogs fa-fw me-2"></i> Config. APIs
-                </a>
-                {% if user.is_staff %}
-                <a href="{% url 'admin:index' %}">
-                    <i class="fas fa-user-shield fa-fw me-2"></i> Admin
-                </a>
-                {% endif %}
-            </div>
+        </div>
+        
+        <!-- Sección Perfil -->
+        <div class="sidebar-item-container">
+            <a href="{% url 'profile' %}" class="{% if 'profile' in request.path %}active{% endif %}">
+                <i class="fas fa-user fa-fw me-2"></i> PERFIL
+            </a>
+        </div>
+        
+        <!-- Sección Cerrar Sesión -->
+        <div class="sidebar-item-container">
+            <a href="{% url 'logout' %}" class="text-danger">
+                <i class="fas fa-sign-out-alt fa-fw me-2"></i> CERRAR SESIÓN
+            </a>
         </div>
     </nav>
 
@@ -680,7 +673,9 @@
                         <i class="fas fa-bars"></i>
                     </button>
                     <div class="navbar-title-section">
-                        <a href="{% url 'home' %}" class="navbar-brand">Lodoro</a>
+                        <a href="{% url 'dashboard' %}" class="navbar-brand">
+                            <img src="{% static 'img/logo.svg' %}" alt="Lodoro Analytics">
+                        </a>
                         <span class="navbar-subtitle">Analytics</span>
                     </div>
                 </div>
@@ -726,12 +721,25 @@
 
         <!-- Content with padding -->
         <div class="content-wrapper">
-            {% bootstrap_messages %}
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
             {% block content %}{% endblock %}
         </div>
     </div>
 
-    {% bootstrap_javascript %}
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {

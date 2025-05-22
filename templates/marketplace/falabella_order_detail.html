@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalle de Orden Falabella{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'falabella_orders' %}">Órdenes Falabella</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Detalle de Orden</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    {% if order %}
+    <div class="row">
+        <!-- Información de la Orden -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información de la Orden</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Orden Falabella:</th>
+                            <td>{{ order.orden_falabella }}</td>
+                        </tr>
+                        <tr>
+                            <th>ID Comercial:</th>
+                            <td>{{ order.commercial_id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Estado:</th>
+                            <td>
+                                <span class="badge {% if order.estado_despacho == 'NUEVA' %}bg-primary{% elif order.estado_despacho == 'PROCESADA' %}bg-info{% elif order.estado_despacho == 'ENVIADA' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ order.estado_despacho }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Fecha de Creación:</th>
+                            <td>{{ order.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Última Actualización:</th>
+                            <td>{{ order.fecha_actualizacion|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Cliente -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información del Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Cliente:</th>
+                            <td>{{ order.cliente }}</td>
+                        </tr>
+                        <tr>
+                            <th>Dirección:</th>
+                            <td>{{ order.calle }}</td>
+                        </tr>
+                        <tr>
+                            <th>Ciudad:</th>
+                            <td>{{ order.ciudad }}</td>
+                        </tr>
+                        <tr>
+                            <th>Región:</th>
+                            <td>{{ order.region }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Producto -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información del Producto</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Producto:</th>
+                            <td>{{ order.producto }}</td>
+                        </tr>
+                        <tr>
+                            <th>SKU:</th>
+                            <td>{{ order.sku_bsale }}</td>
+                        </tr>
+                        <tr>
+                            <th>EAN:</th>
+                            <td>{{ order.ean_bsale }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de Costos -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información de Costos</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Costo Neto:</th>
+                            <td>${{ order.costo_neto|floatformat:0 }}</td>
+                        </tr>
+                        <tr>
+                            <th>IVA:</th>
+                            <td>${{ order.iva|floatformat:0 }}</td>
+                        </tr>
+                        <tr>
+                            <th>Costo Despacho:</th>
+                            <td>${{ order.costo_despacho|floatformat:0 }}</td>
+                        </tr>
+                        <tr>
+                            <th>Costo Total:</th>
+                            <td>${{ order.costo_total|floatformat:0 }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boleta -->
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Boleta</h5>
+                </div>
+                <div class="card-body">
+                    {% if order.url_boleta %}
+                    <a href="{{ order.url_boleta }}" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-file-pdf"></i> Ver Boleta {{ order.numero_boleta }}
+                    </a>
+                    {% else %}
+                    <p class="text-muted">No hay boleta disponible</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        No se encontró la orden solicitada.
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

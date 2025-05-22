@@ -16,23 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-
-from core.views import login_view, logout_view, home_view, api_status_view, scan_order_view, order_detail_view
+from django.contrib.auth import views as auth_views
+from core.views import dashboard, profile, settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
-    # Core URLs
-    path('login/', login_view, name='login'),
-    path('logout/', logout_view, name='logout'),
-    path('', home_view, name='home'),
-    path('api-status/', api_status_view, name='api_status'),
-    path('scan-order/', scan_order_view, name='scan_order'),
-    path('order/<int:scan_id>/', order_detail_view, name='order_detail'),
-    
-    # Marketplace URLs
+    path('', dashboard, name='dashboard'),
+    path('profile/', profile, name='profile'),
+    path('settings/', settings, name='settings'),
     path('marketplace/', include('marketplace.urls')),
-    
-    # Analytics URLs
-    path('analytics/', include('analytics.urls')),
+    path('login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 ]

@@ -18,18 +18,6 @@
                         </div>
                         <div class="col-6 text-end">
                             <a href="{% url 'paris_orders' %}" class="btn btn-outline-primary btn-sm mb-0">Volver a Órdenes</a>
-                            
-                            {% if order.boleta_number %}
-                            <button class="btn btn-outline-info btn-sm mb-0" onclick="findBsaleDocument('{{ order.boleta_number }}')">
-                                <i class="fa fa-search"></i> Ver Boleta BSale
-                            </button>
-                            {% endif %}
-                            
-                            {% if order.bsale_document_id %}
-                            <a href="https://app.bsale.cl/view/2/{{ order.bsale_document_id }}" target="_blank" class="btn btn-info btn-sm mb-0">
-                                <i class="fa fa-external-link"></i> Abrir Boleta en BSale
-                            </a>
-                            {% endif %}
                         </div>
                     </div>
                 </div>

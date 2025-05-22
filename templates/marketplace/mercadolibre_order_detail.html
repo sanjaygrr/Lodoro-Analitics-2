@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle de Orden Mercado Libre{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Detalle de Orden Mercado Libre</h5>
+                </div>
+                <div class="card-body">
+                    {% if order %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Información de la Orden</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Orden Mercado Libre:</th>
+                                    <td>{{ order.orden_mercadolibre }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Cliente:</th>
+                                    <td>{{ order.cliente }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Producto:</th>
+                                    <td>{{ order.producto }}</td>
+                                </tr>
+                                <tr>
+                                    <th>SKU Mercado Libre:</th>
+                                    <td>{{ order.sku_mercadolibre }}</td>
+                                </tr>
+                                <tr>
+                                    <th>SKU Vendedor:</th>
+                                    <td>{{ order.sku_vendedor }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Información de Facturación</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Número Boleta:</th>
+                                    <td>{{ order.numero_boleta }}</td>
+                                </tr>
+                                <tr>
+                                    <th>URL Boleta:</th>
+                                    <td>
+                                        {% if order.url_boleta %}
+                                        <a href="{{ order.url_boleta }}" target="_blank" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-file-pdf"></i> Ver Boleta
+                                        </a>
+                                        {% else %}
+                                        No disponible
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Costo Neto:</th>
+                                    <td>${{ order.costo_neto|floatformat:0 }}</td>
+                                </tr>
+                                <tr>
+                                    <th>IVA:</th>
+                                    <td>${{ order.iva|floatformat:0 }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Costo Total:</th>
+                                    <td>${{ order.costo_total|floatformat:0 }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Costo Despacho:</th>
+                                    <td>${{ order.costo_despacho|floatformat:0 }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6>Estado de la Orden</h6>
+                            <div class="d-flex gap-2">
+                                <span class="badge {% if order.printed %}bg-success{% else %}bg-secondary{% endif %}">
+                                    <i class="fas fa-print"></i> {% if order.printed %}Impreso{% else %}No Impreso{% endif %}
+                                </span>
+                                <span class="badge {% if order.processed %}bg-success{% else %}bg-secondary{% endif %}">
+                                    <i class="fas fa-cog"></i> {% if order.processed %}Procesado{% else %}No Procesado{% endif %}
+                                </span>
+                                <span class="badge {% if order.estado_despacho == 'ENVIADA' %}bg-success{% else %}bg-secondary{% endif %}">
+                                    <i class="fas fa-truck"></i> {{ order.estado_despacho|default:"No Despachado" }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6>Fechas</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Fecha Creación:</th>
+                                    <td>{{ order.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Última Actualización:</th>
+                                    <td>{{ order.fecha_actualizacion|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        No se encontró la orden especificada.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="50" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .text { font-family: Arial, sans-serif; font-weight: bold; }
+        .primary { fill: #ffffff; }
+        .accent { fill: #f0f4ff; }
+    </style>
+    <rect width="200" height="50" rx="10" fill="#5a67d8"/>
+    <text x="20" y="32" class="text primary" font-size="24">Lodoro</text>
+    <text x="100" y="32" class="text accent" font-size="24">Analytics</text>
+</svg> 

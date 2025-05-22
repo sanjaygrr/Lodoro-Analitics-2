@@ -1212,7 +1212,8 @@ def print_mercadolibre_packing(request):
                 try:
                     # Generar código de barras
                     barcode_buffer = BytesIO()
-                    barcode_instance = barcode.get('code128', order_id, writer=ImageWriter())
+                    BarcodeClass = barcode.get_barcode_class('code128')
+                    barcode_instance = BarcodeClass(order_id, writer=ImageWriter())
                     options = {
                         'module_width': 1.5,    # Aumentado para hacer el código más grande
                         'module_height': 40.0,   # Aumentado para hacer el código más alto

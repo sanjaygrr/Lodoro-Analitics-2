@@ -144,7 +144,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Login URL
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'home'
+LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'login'
 
 # Media files
@@ -154,3 +154,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # BSale credentials
 BSALE_USERNAME = os.environ.get('BSALE_USERNAME', '')
 BSALE_PASSWORD = os.environ.get('BSALE_PASSWORD', '')
+
+# Configuración para errores personalizados
+# Si DEBUG=False, Django usará templates/404.html automáticamente si existe.
+# No se requiere cambio extra salvo que quieras personalizar handler404 en urls.py

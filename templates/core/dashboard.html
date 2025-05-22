@@ -4,16 +4,48 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1>Dashboard</h1>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Bienvenido al Dashboard</h5>
-                    <p class="card-text">Aquí podrás ver un resumen de las actividades del sistema.</p>
+    <h1 class="mb-4">Bienvenido al Dashboard</h1>
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">Resumen de Órdenes por Marketplace</h4>
+            <div class="row g-4">
+                {% for marketplace, stats in resumen.items %}
+                <div class="col-md-6 col-xl-3">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-gradient text-white text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <h5 class="mb-0">{{ marketplace }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6 mb-3">
+                                    <div class="small text-muted">Nuevas</div>
+                                    <div class="fw-bold text-primary" style="font-size:1.5rem;">{{ stats.nuevas }}</div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="small text-muted">Por Procesar</div>
+                                    <div class="fw-bold text-info" style="font-size:1.5rem;">{{ stats.por_procesar }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="small text-muted">Por Despachar</div>
+                                    <div class="fw-bold text-warning" style="font-size:1.5rem;">{{ stats.por_despachar }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="small text-muted">Despachadas</div>
+                                    <div class="fw-bold text-success" style="font-size:1.5rem;">{{ stats.despachadas }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.card-header.bg-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+</style>
 {% endblock %} 

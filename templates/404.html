@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Página no encontrada (404){% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="mb-4">
+        <img src="https://cdn-icons-png.flaticon.com/512/2748/2748558.png" alt="404" style="max-width:120px;">
+    </div>
+    <h1 class="display-4 mb-3">¡Ups! Página no encontrada</h1>
+    <p class="lead mb-4">La página que buscas no existe, fue movida o escribiste mal la dirección.<br>Pero no te preocupes, puedes volver al inicio.</p>
+    <a href="/" class="btn btn-primary btn-lg"><i class="fas fa-home me-2"></i>Ir al Dashboard</a>
+</div>
+{% endblock %} 

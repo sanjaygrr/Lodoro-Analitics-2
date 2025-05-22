@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Título y Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Dashboard</h2>
+                <div class="d-flex gap-3">
+                    <select class="form-select" id="yearSelect">
+                        {% for year in years %}
+                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjetas de Resumen -->
+    <div class="row g-4 mb-4">
+        <!-- Total Ventas -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="card-icon bg-primary bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-shopping-cart text-primary"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="exportarExcel('ventas')">Exportar a Excel</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h3 class="card-title h5 mb-2">Total Ventas</h3>
+                    <div class="d-flex align-items-center">
+                        <h4 class="mb-0 me-2">${{ total_ventas|floatformat:0|intcomma }}</h4>
+                        <span class="badge bg-success">
+                            <i class="fas fa-arrow-up me-1"></i>{{ variacion_ventas }}%
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">vs mes anterior</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Órdenes -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="card-icon bg-success bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-box text-success"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="exportarExcel('ordenes')">Exportar a Excel</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h3 class="card-title h5 mb-2">Total Órdenes</h3>
+                    <div class="d-flex align-items-center">
+                        <h4 class="mb-0 me-2">{{ total_ordenes|intcomma }}</h4>
+                        <span class="badge bg-success">
+                            <i class="fas fa-arrow-up me-1"></i>{{ variacion_ordenes }}%
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">vs mes anterior</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Órdenes Pendientes -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="card-icon bg-warning bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-clock text-warning"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="exportarExcel('pendientes')">Exportar a Excel</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h3 class="card-title h5 mb-2">Órdenes Pendientes</h3>
+                    <div class="d-flex align-items-center">
+                        <h4 class="mb-0 me-2">{{ ordenes_pendientes|intcomma }}</h4>
+                        <span class="badge bg-danger">
+                            <i class="fas fa-arrow-up me-1"></i>{{ variacion_pendientes }}%
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">vs mes anterior</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket Promedio -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="card-icon bg-info bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-receipt text-info"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="exportarExcel('ticket')">Exportar a Excel</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h3 class="card-title h5 mb-2">Ticket Promedio</h3>
+                    <div class="d-flex align-items-center">
+                        <h4 class="mb-0 me-2">${{ ticket_promedio|floatformat:0|intcomma }}</h4>
+                        <span class="badge bg-success">
+                            <i class="fas fa-arrow-up me-1"></i>{{ variacion_ticket }}%
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">vs mes anterior</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row g-4">
+        <!-- Gráfico de Ventas -->
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-3">
+                    <h5 class="card-title mb-0">Ventas por Marketplace</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="exportarExcel('ventas_marketplace')">Exportar a Excel</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="ventasChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Estados -->
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-3">
+                    <h5 class="card-title mb-0">Estados de Órdenes</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="exportarExcel('estados')">Exportar a Excel</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="estadosChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-card {
+    transition: all 0.3s ease;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+.card-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.card-icon i {
+    font-size: 1.5rem;
+}
+.badge {
+    padding: 0.5em 0.75em;
+    font-weight: 500;
+}
+</style>
+
+{% block extra_js %}
+<script>
+// ... existing JavaScript code ...
+</script>
+{% endblock %}
+{% endblock %} 

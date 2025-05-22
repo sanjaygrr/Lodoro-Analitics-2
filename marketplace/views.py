@@ -275,6 +275,16 @@ def falabella_orders(request):
         date_from = date_from if date_from else None
         date_to = date_to if date_to else None
         
+        # Ajustar el filtro impreso: por defecto solo mostrar NO impresas
+        if printed_filter == '':
+            printed_filter_value = 0
+        elif printed_filter == 'SI':
+            printed_filter_value = 1
+        elif printed_filter == 'NO':
+            printed_filter_value = 0
+        else:
+            printed_filter_value = None
+        
         # Llamar al procedimiento almacenado con COLLATE para manejar las collations
         cursor.execute("""
             CALL get_falabella_orders(
@@ -284,7 +294,7 @@ def falabella_orders(request):
         """, [
             status_filter or None,
             processed_filter or None,
-            printed_filter or None,
+            printed_filter_value,
             date_from,
             date_to,
             search_query or None,
@@ -2391,3 +2401,204 @@ def safe_float(value, default=0.0):
         return float(value) if value is not None else default
     except (ValueError, TypeError):
         return default
+
+@login_required
+def falabella_sales_analysis(request):
+    import decimal
+    year = request.GET.get('year', '')
+    page = int(request.GET.get('page', 1))
+    per_page = 50
+    offset = (page - 1) * per_page
+    date_from = f"{year}-01-01" if year else None
+    date_to = f"{year}-12-31" if year else None
+    with connection.cursor() as cursor:
+        # 1. Ventas Mensuales
+        cursor.execute('''
+            SELECT
+                YEAR(bd.emissionDate) AS anio,
+                MONTH(bd.emissionDate) AS mes,
+                COUNT(DISTINCT bd.id) AS total_boletas,
+                SUM(bd.netAmount) AS venta_neta,
+                SUM(bd.taxAmount) AS total_iva,
+                SUM(bd.totalAmount) AS venta_total
+            FROM falabella_orders fo
+            JOIN bsale_references br ON br.number = fo.order_number
+            JOIN bsale_documents bd ON bd.id = br.document_id
+            WHERE bd.number IS NOT NULL
+            GROUP BY anio, mes
+            ORDER BY anio DESC, mes DESC
+        ''')
+        monthly_sales = cursor.fetchall()
+        # 2. Estados de Órdenes
+        cursor.execute('''
+            SELECT
+                YEAR(fo.created_at) AS anio,
+                MONTH(fo.created_at) AS mes,
+                fo.status AS estado,
+                COUNT(DISTINCT fo.order_id) AS total_ordenes
+            FROM falabella_orders fo
+            GROUP BY anio, mes, estado
+            ORDER BY anio DESC, mes DESC
+        ''')
+        monthly_status_stats = cursor.fetchall()
+        # 3. Top 20 Productos Históricos
+        cursor.execute('''
+            SELECT
+                bv.barCode AS ean,
+                bv.description AS producto,
+                bdd.variant_code AS sku_bsale,
+                SUM(bdd.quantity) AS cantidad_vendida,
+                SUM(bdd.totalAmount) AS total_vendido
+            FROM falabella_orders fo
+            JOIN bsale_references br ON br.number = fo.order_number
+            JOIN bsale_documents bd ON bd.id = br.document_id
+            JOIN bsale_document_details bdd ON bdd.document_id = bd.id
+            JOIN bsale_variants bv ON bv.id = bdd.variant_id
+            WHERE bd.number IS NOT NULL
+            GROUP BY producto, sku_bsale, ean
+            ORDER BY cantidad_vendida DESC
+            LIMIT 20
+        ''')
+        top_products = cursor.fetchall()
+        # 4. Top 20 Productos por Mes
+        cursor.execute('''
+            SELECT * FROM (
+                SELECT
+                    YEAR(bd.emissionDate) AS anio,
+                    MONTH(bd.emissionDate) AS mes,
+                    bv.barCode AS ean,
+                    bv.description AS producto,
+                    bdd.variant_code AS sku_bsale,
+                    SUM(bdd.quantity) AS cantidad_vendida,
+                    SUM(bdd.totalAmount) AS total_vendido,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY YEAR(bd.emissionDate), MONTH(bd.emissionDate)
+                        ORDER BY SUM(bdd.quantity) DESC
+                    ) AS fila
+                FROM falabella_orders fo
+                JOIN bsale_references br ON br.number = fo.order_number
+                JOIN bsale_documents bd ON bd.id = br.document_id
+                JOIN bsale_document_details bdd ON bdd.document_id = bd.id
+                JOIN bsale_variants bv ON bv.id = bdd.variant_id
+                WHERE bd.number IS NOT NULL
+                GROUP BY anio, mes, producto, sku_bsale, ean
+            ) AS sub
+            WHERE sub.fila <= 20
+            ORDER BY anio DESC, mes DESC, fila
+        ''')
+        monthly_top_products = cursor.fetchall()
+        # Años disponibles
+        years = sorted(list(set([str(sale[0]) for sale in monthly_sales if sale and sale[0]])), reverse=True)
+        # Lista de órdenes desde el procedimiento almacenado
+        cursor.execute(
+            "CALL get_falabella_orders(%s, %s, %s, %s, %s, %s, %s, %s, @p_total_orders, @p_total_amount)",
+            [None, None, None, date_from, date_to, None, per_page, offset]
+        )
+        columns = [col[0] for col in cursor.description]
+        falabella_orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.execute("SELECT @p_total_orders, @p_total_amount")
+        total_orders, total_amount = cursor.fetchone()
+    total_pages = (total_orders + per_page - 1) // per_page if total_orders else 1
+    has_previous = page > 1
+    has_next = page < total_pages
+    previous_page = page - 1
+    next_page = page + 1
+    page_range = range(max(1, page - 2), min(total_pages + 1, page + 3))
+    def decimal_to_float(obj):
+        if isinstance(obj, list):
+            return [decimal_to_float(i) for i in obj]
+        if isinstance(obj, tuple):
+            return tuple(decimal_to_float(i) for i in obj)
+        if isinstance(obj, dict):
+            return {k: decimal_to_float(v) for k, v in obj.items()}
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return obj
+    context = {
+        'top_products': top_products,
+        'monthly_top_products': monthly_top_products,
+        'monthly_status_stats': monthly_status_stats,
+        'monthly_sales': monthly_sales,
+        'falabella_orders': falabella_orders,
+        'total_orders': total_orders,
+        'total_amount': total_amount,
+        'years': years,
+        'year_selected': year,
+        'page': page,
+        'total_pages': total_pages,
+        'has_previous': has_previous,
+        'has_next': has_next,
+        'previous_page': previous_page,
+        'next_page': next_page,
+        'page_range': page_range,
+        'per_page': per_page,
+        'monthly_sales_json': json.dumps(decimal_to_float(monthly_sales)),
+        'monthly_status_stats_json': json.dumps(decimal_to_float(monthly_status_stats)),
+    }
+    return render(request, 'marketplace/falabella_sales_analysis.html', context)
+
+@login_required
+def exportar_falabella_orders_excel(request):
+    year = request.GET.get('year', '')
+    date_from = f"{year}-01-01" if year else None
+    date_to = f"{year}-12-31" if year else None
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL get_falabella_orders(%s, %s, %s, %s, %s, %s, %s, %s, @p_total_orders, @p_total_amount)",
+            [None, None, None, date_from, date_to, None, 100000, 0]
+        )
+        columns = [col[0] for col in cursor.description]
+        orders = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    import openpyxl
+    from openpyxl.utils import get_column_letter
+    from tempfile import NamedTemporaryFile
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Órdenes Falabella'
+    ws.append(columns)
+    for order in orders:
+        ws.append([order.get(col, '') for col in columns])
+    for i, col in enumerate(columns, 1):
+        ws.column_dimensions[get_column_letter(i)].width = 18
+    tmp = NamedTemporaryFile()
+    wb.save(tmp.name)
+    tmp.seek(0)
+    response = HttpResponse(tmp.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="falabella_orders_{year or 'todos'}.xlsx"'
+    return response
+
+@login_required
+def scan_dispatch(request):
+    return render(request, 'marketplace/scan_dispatch.html')
+
+@csrf_exempt
+@login_required
+def ajax_despachar_orden(request):
+    import json
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        order_number = data.get('order_number')
+        if not order_number:
+            return JsonResponse({'success': False, 'error': 'No se recibió el número de orden.'})
+        with connection.cursor() as cursor:
+            # Buscar y despachar en Paris
+            cursor.execute("SELECT COUNT(*) FROM paris_orders WHERE subOrderNumber = %s", [order_number])
+            if cursor.fetchone()[0]:
+                cursor.execute("UPDATE paris_orders SET orden_despachada = 1 WHERE subOrderNumber = %s", [order_number])
+                return JsonResponse({'success': True, 'marketplace': 'Paris'})
+            # Buscar y despachar en Ripley
+            cursor.execute("SELECT COUNT(*) FROM ripley_orders WHERE order_id = %s", [order_number])
+            if cursor.fetchone()[0]:
+                cursor.execute("UPDATE ripley_orders SET orden_despachada = 1 WHERE order_id = %s", [order_number])
+                return JsonResponse({'success': True, 'marketplace': 'Ripley'})
+            # Buscar y despachar en Falabella
+            cursor.execute("SELECT COUNT(*) FROM falabella_orders WHERE order_number = %s", [order_number])
+            if cursor.fetchone()[0]:
+                cursor.execute("UPDATE falabella_orders SET orden_despachada = 1 WHERE order_number = %s", [order_number])
+                return JsonResponse({'success': True, 'marketplace': 'Falabella'})
+            # Buscar y despachar en Mercado Libre
+            cursor.execute("SELECT COUNT(*) FROM mercadolibre_orders WHERE id = %s", [order_number])
+            if cursor.fetchone()[0]:
+                cursor.execute("UPDATE mercadolibre_orders SET orden_despachada = 1 WHERE id = %s", [order_number])
+                return JsonResponse({'success': True, 'marketplace': 'Mercado Libre'})
+        return JsonResponse({'success': False, 'error': 'Orden no encontrada en ningún marketplace.'})

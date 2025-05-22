@@ -1,19 +1,43 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Iniciar Sesión{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">Iniciar Sesión</h2>
-                    <form method="post">
+<div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card-header bg-gradient text-white text-center py-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <img src="{% static 'img/logo.svg' %}" alt="Lodoro Analytics" class="img-fluid mb-3" style="max-height: 60px;">
+                    <h3 class="mb-0">Iniciar Sesión</h3>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
-                        {{ form.as_p }}
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                        <div class="form-floating mb-3">
+                            <input type="text" name="username" class="form-control" id="username" placeholder="Usuario" required>
+                            <label for="username"><i class="fas fa-user me-2"></i>Usuario</label>
+                        </div>
+                        <div class="form-floating mb-4">
+                            <input type="password" name="password" class="form-control" id="password" placeholder="Contraseña" required>
+                            <label for="password"><i class="fas fa-lock me-2"></i>Contraseña</label>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Ingresar
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -21,4 +45,39 @@
         </div>
     </div>
 </div>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+}
+.card-header {
+    border-bottom: none;
+}
+.form-floating > .form-control {
+    padding: 1rem 0.75rem;
+    height: calc(3.5rem + 2px);
+    line-height: 1.25;
+}
+.form-floating > label {
+    padding: 1rem 0.75rem;
+}
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+</style>
 {% endblock %} 

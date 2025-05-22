@@ -213,32 +213,32 @@
                 <div>
                     Mostrando {{ orders|length }} de {{ total_orders }} órdenes
                 </div>
-                {% if orders.paginator.num_pages > 1 %}
+                {% if total_pages > 1 %}
                 <nav>
                     <ul class="pagination mb-0">
-                        {% if orders.has_previous %}
+                        {% if has_previous %}
                         <li class="page-item">
                             <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.processed %}&processed={{ request.GET.processed }}{% endif %}{% if request.GET.printed %}&printed={{ request.GET.printed }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">&laquo; Primera</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ orders.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.processed %}&processed={{ request.GET.processed }}{% endif %}{% if request.GET.printed %}&printed={{ request.GET.printed }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Anterior</a>
+                            <a class="page-link" href="?page={{ previous_page }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.processed %}&processed={{ request.GET.processed }}{% endif %}{% if request.GET.printed %}&printed={{ request.GET.printed }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Anterior</a>
                         </li>
                         {% endif %}
-                        {% for num in orders.paginator.page_range %}
-                            {% if num >= orders.number|add:'-2' and num <= orders.number|add:'2' %}
-                                {% if orders.number == num %}
+                        {% for num in page_range %}
+                            {% if num >= page|add:'-2' and num <= page|add:'2' %}
+                                {% if page == num %}
                                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                                 {% else %}
                                     <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.processed %}&processed={{ request.GET.processed }}{% endif %}{% if request.GET.printed %}&printed={{ request.GET.printed }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a></li>
                                 {% endif %}
                             {% endif %}
                         {% endfor %}
-                        {% if orders.has_next %}
+                        {% if has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ orders.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.processed %}&processed={{ request.GET.processed }}{% endif %}{% if request.GET.printed %}&printed={{ request.GET.printed }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Siguiente</a>
+                            <a class="page-link" href="?page={{ next_page }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.processed %}&processed={{ request.GET.processed }}{% endif %}{% if request.GET.printed %}&printed={{ request.GET.printed }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Siguiente</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ orders.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.processed %}&processed={{ request.GET.processed }}{% endif %}{% if request.GET.printed %}&printed={{ request.GET.printed }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Última &raquo;</a>
+                            <a class="page-link" href="?page={{ total_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.processed %}&processed={{ request.GET.processed }}{% endif %}{% if request.GET.printed %}&printed={{ request.GET.printed }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Última &raquo;</a>
                         </li>
                         {% endif %}
                     </ul>

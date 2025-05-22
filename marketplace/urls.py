@@ -46,4 +46,8 @@ urlpatterns = [
     path('ripley/exportar-excel/', views.exportar_ripley_orders_excel, name='exportar_ripley_orders_excel'),
     path('mercadolibre/sales-analysis/', views.mercadolibre_sales_analysis, name='mercadolibre_sales_analysis'),
     path('mercadolibre/exportar-excel/', views.exportar_mercadolibre_orders_excel, name='exportar_mercadolibre_orders_excel'),
+    path('falabella/sales-analysis/', views.falabella_sales_analysis, name='falabella_sales_analysis'),
+    path('falabella/exportar-excel/', views.exportar_falabella_orders_excel, name='exportar_falabella_orders_excel'),
+    path('scan-dispatch/', views.scan_dispatch, name='scan_dispatch'),
+    path('ajax-despachar-orden/', views.ajax_despachar_orden, name='ajax_despachar_orden'),
 ] 

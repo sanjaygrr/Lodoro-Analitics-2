@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Despachar por Escaneo{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Despachar Orden por Escaneo</h2>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div id="reader" style="width:100%"></div>
+            <div id="result" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+function showResult(message, success, marketplace) {
+    const resultDiv = document.getElementById('result');
+    if (success) {
+        resultDiv.innerHTML = `<div class='alert alert-success'>Orden despachada correctamente en <b>${marketplace}</b>!</div>`;
+    } else {
+        resultDiv.innerHTML = `<div class='alert alert-danger'>${message}</div>`;
+    }
+}
+
+function despacharOrden(orderNumber) {
+    fetch("{% url 'ajax_despachar_orden' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({order_number: orderNumber})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult('¡Orden despachada correctamente!', true, data.marketplace);
+        } else {
+            showResult(data.error || 'No se pudo despachar la orden.', false);
+        }
+    })
+    .catch(() => showResult('Error de comunicación con el servidor.', false));
+}
+
+let lastScanned = '';
+const html5QrCode = new Html5Qrcode("reader");
+Html5Qrcode.getCameras().then(devices => {
+    if (devices && devices.length) {
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { 
+                fps: 10,
+                qrbox: { width: 400, height: 400 },
+                aspectRatio: 1.0,
+                formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, 
+                                  Html5QrcodeSupportedFormats.EAN_8,
+                                  Html5QrcodeSupportedFormats.UPC_A,
+                                  Html5QrcodeSupportedFormats.UPC_E,
+                                  Html5QrcodeSupportedFormats.CODE_128,
+                                  Html5QrcodeSupportedFormats.CODE_39,
+                                  Html5QrcodeSupportedFormats.CODE_93,
+                                  Html5QrcodeSupportedFormats.QR_CODE ]
+            },
+            qrCodeMessage => {
+                if (qrCodeMessage !== lastScanned) {
+                    lastScanned = qrCodeMessage;
+                    despacharOrden(qrCodeMessage);
+                }
+            },
+            errorMessage => {
+                // Silenciar errores de escaneo continuo
+            }
+        ).catch(err => {
+            showResult('No se pudo acceder a la cámara: ' + err, false);
+        });
+    } else {
+        showResult('No se detectó cámara en el dispositivo.', false);
+    }
+});
+</script>
+{% endblock %} 

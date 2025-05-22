@@ -1,19 +1,55 @@
 {% extends 'base.html' %}
 
-{% block title %}Perfil{% endblock %}
+{% block title %}Perfil de Usuario{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1>Perfil de Usuario</h1>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Información del Usuario</h5>
-                    <p class="card-text">Aquí podrás ver y editar tu información personal.</p>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card-header bg-gradient text-white text-center py-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="mb-2">
+                        <i class="fas fa-user-circle fa-3x"></i>
+                    </div>
+                    <h3 class="mb-0">Perfil de Usuario</h3>
+                </div>
+                <div class="card-body p-4">
+                    <dl class="row mb-0">
+                        <dt class="col-5 text-muted">Nombre de usuario:</dt>
+                        <dd class="col-7">{{ user.username }}</dd>
+
+                        <dt class="col-5 text-muted">Nombre completo:</dt>
+                        <dd class="col-7">{{ user.get_full_name|default:'-' }}</dd>
+
+                        <dt class="col-5 text-muted">Correo electrónico:</dt>
+                        <dd class="col-7">{{ user.email|default:'-' }}</dd>
+
+                        <dt class="col-5 text-muted">Fecha de registro:</dt>
+                        <dd class="col-7">{{ user.date_joined|date:'d/m/Y H:i' }}</dd>
+
+                        <dt class="col-5 text-muted">Último acceso:</dt>
+                        <dd class="col-7">{{ user.last_login|date:'d/m/Y H:i' }}</dd>
+
+                        <dt class="col-5 text-muted">Rol:</dt>
+                        <dd class="col-7">
+                            {% if user.is_superuser %}
+                                <span class="badge bg-danger">Superadmin</span>
+                            {% elif user.is_staff %}
+                                <span class="badge bg-primary">Administrador</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Usuario</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.card-header.bg-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+</style>
 {% endblock %} 

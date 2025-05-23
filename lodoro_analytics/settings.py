@@ -21,7 +21,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-^o7l!k+13c%ak6vwvno@#
 DEBUG = True  # Temporalmente en True para ver errores
 
 # Heroku configuration
-ALLOWED_HOSTS = ['lodoro-analiticis-337f9d06fd63.herokuapp.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['lodoro-analytics-43502c07f481.herokuapp.com', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
